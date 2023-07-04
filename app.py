@@ -6,6 +6,7 @@ import base64
 import zipfile
 import tempfile
 import fnmatch
+import re
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit, quote_from_bytes, unquote_to_bytes
 from urllib.request import urlopen
@@ -49,6 +50,9 @@ def svg_to_png(svg_string: str, dark_bg: bool = False) -> bytes:
 
     # force text font to DejaVu Sans Mono, since cairosvg does not properly use font-family attribute
     input_svg = input_svg.replace("font-family: ", "font-family: DejaVu Sans Mono,")
+
+    # remove relative font size specifiers since cairosvg can't handle them
+    input_svg = re.sub(r'style="font-size: \d+(\.\d+)?%"', "", input_svg)
 
     return svg2png(bytestring=input_svg.encode("utf-8"), background_color="black" if dark_bg else "white")
 
