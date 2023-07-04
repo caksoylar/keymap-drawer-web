@@ -12,6 +12,7 @@ from urllib.request import urlopen
 from urllib.error import HTTPError
 
 import yaml
+from cairosvg import svg2png
 import streamlit as st
 
 from keymap_drawer.draw import KeymapDrawer
@@ -32,6 +33,23 @@ def svg_to_html(svg_string: str) -> str:
     """Convert SVG string in SVG/XML format to one embedded in a img tag."""
     b64 = base64.b64encode(svg_string.encode("utf-8")).decode("utf-8")
     return f'<img src="data:image/svg+xml;base64,{b64}"/>'
+
+
+def svg_to_png(svg_string: str, dark_bg: bool = False) -> bytes:
+    """
+    Convert SVG string in SVG/XML format to PNG using cairosvg, removing the unsupported stroke style for layer headers.
+    """
+    # remove white outline from layer headers, since we know the background color
+    input_svg = svg_string.replace("stroke: white;", "")
+
+    # change layer header to white if on black background
+    if dark_bg:
+        input_svg = input_svg.replace("text.label {", "text.label { fill: white;")
+
+    # force text font to DejaVu Sans Mono, since cairosvg does not properly use font-family attribute
+    input_svg = input_svg.replace("font-family: ", "font-family: DejaVu Sans Mono,")
+
+    return svg2png(bytestring=input_svg.encode(), background_color="black" if dark_bg else "white")
 
 
 def draw(yaml_str: str, config: DrawConfig) -> str:
@@ -322,7 +340,22 @@ def main():
             svg = draw(st.session_state.keymap_yaml, parse_config(st.session_state.kd_config).draw_config)
             st.subheader("Keymap SVG")
             st.write(svg_to_html(svg), unsafe_allow_html=True)
-            st.download_button(label="Download SVG", data=svg, file_name="my_keymap.svg")
+
+            with st.expander("Export"):
+                svg_col, png_col = st.columns(2)
+                with svg_col:
+                    st.subheader("SVG")
+                    st.download_button(label="Download", data=svg, file_name="my_keymap.svg")
+
+                with png_col:
+                    st.subheader("PNG")
+                    st.caption(
+                        "Note: Export might not render emojis and unicode characters as well as your browser and uses a fixed text font"
+                    )
+                    png_bg = st.radio("Background", ("White", "Black"))
+                    st.download_button(
+                        label="Export", data=svg_to_png(svg, png_bg == "Black"), file_name="my_keymap.png"
+                    )
         except yaml.YAMLError as err:
             _handle_exception(st, "Could not parse keymap YAML, please check for syntax errors", err)
         except Exception as err:
