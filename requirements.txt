@@ -1,0 +1,2 @@
+keymap-drawer
+cairosvg>=2.7.0,<3
