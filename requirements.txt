@@ -1,4 +1,4 @@
-keymap-drawer
+git+https://github.com/caksoylar/keymap-drawer@dev
 
 
 
