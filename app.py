@@ -5,19 +5,20 @@ import gzip
 import base64
 import zipfile
 import tempfile
-import time
+import fnmatch
 from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit, quote_from_bytes, unquote_to_bytes
 from urllib.request import urlopen
 from urllib.error import HTTPError
 
 import yaml
-from cairosvg import svg2png
-import streamlit as st
+from cairosvg import svg2png  # type: ignore
 
 from keymap_drawer.draw import KeymapDrawer
 from keymap_drawer.config import Config, DrawConfig, ParseConfig
 from keymap_drawer.parse import QmkJsonParser, ZmkKeymapParser
+
+import streamlit as st
 
 
 LAYOUT_PREAMBLE = """\
@@ -49,7 +50,7 @@ def svg_to_png(svg_string: str, dark_bg: bool = False) -> bytes:
     # force text font to DejaVu Sans Mono, since cairosvg does not properly use font-family attribute
     input_svg = input_svg.replace("font-family: ", "font-family: DejaVu Sans Mono,")
 
-    return svg2png(bytestring=input_svg.encode(), background_color="black" if dark_bg else "white")
+    return svg2png(bytestring=input_svg.encode("utf-8"), background_color="black" if dark_bg else "white")
 
 
 def draw(yaml_str: str, config: DrawConfig) -> str:
@@ -76,25 +77,13 @@ def draw(yaml_str: str, config: DrawConfig) -> str:
 @st.cache_resource
 def get_example_yamls() -> dict[str, str]:
     """Return mapping of example keymap YAML names to contents."""
-    out = {}
     repo_zip =_download_zip("caksoylar", "keymap-drawer", "main")
-    with tempfile.TemporaryDirectory() as tmpdir:
-        with zipfile.ZipFile(io.BytesIO(repo_zip)) as zipped:
-            zipped.extractall(tmpdir)
-        examples_path = next(Path(tmpdir).glob("caksoylar-keymap-drawer-*")) / "examples"
-        example_files = sorted(examples_path.glob("*.yaml"))
-        retry = 0
-        while not example_files and retry < 5:
-            print("Couldn't retrieve example files, retrying")
-            time.sleep(0.2)
-            example_files = sorted(examples_path.glob("*.yaml"))
-            retry += 1
-        if not example_files:
+    with zipfile.ZipFile(io.BytesIO(repo_zip)) as zipped:
+        files = zipped.namelist()
+        example_paths = sorted([Path(path) for path in files if fnmatch.fnmatch(path, "*/examples/*.yaml")])
+        if not example_paths:
             raise RuntimeError("Retrying examples failed, please refresh the page :(")
-        for path in example_files:
-            with open(path, encoding="utf-8") as f:
-                out[path.name] = f.read()
-    return out
+        return {path.name: zipped.read(path.as_posix()).decode("utf-8") for path in example_paths}
 
 
 @st.cache_data
