@@ -77,19 +77,23 @@ def draw(yaml_str: str, config: DrawConfig) -> str:
 def get_example_yamls() -> dict[str, str]:
     """Return mapping of example keymap YAML names to contents."""
     out = {}
-    examples_path = Path(__file__).parent.parent / "examples"
-    example_files = sorted(examples_path.glob("*.yaml"))
-    retry = 0
-    while not example_files and retry < 5:
-        print("Couldn't retrieve example files, retrying")
-        time.sleep(0.2)
+    repo_zip =_download_zip("caksoylar", "keymap-drawer", "main")
+    with tempfile.TemporaryDirectory() as tmpdir:
+        with zipfile.ZipFile(io.BytesIO(repo_zip)) as zipped:
+            zipped.extractall(tmpdir)
+        examples_path = next(Path(tmpdir).glob("caksoylar-keymap-drawer-*")) / "examples"
         example_files = sorted(examples_path.glob("*.yaml"))
-        retry += 1
-    if not example_files:
-        raise RuntimeError("Retrying examples failed, please refresh the page :(")
-    for path in example_files:
-        with open(path, encoding="utf-8") as f:
-            out[path.name] = f.read()
+        retry = 0
+        while not example_files and retry < 5:
+            print("Couldn't retrieve example files, retrying")
+            time.sleep(0.2)
+            example_files = sorted(examples_path.glob("*.yaml"))
+            retry += 1
+        if not example_files:
+            raise RuntimeError("Retrying examples failed, please refresh the page :(")
+        for path in example_files:
+            with open(path, encoding="utf-8") as f:
+                out[path.name] = f.read()
     return out
 
 
