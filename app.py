@@ -11,6 +11,7 @@ from pathlib import Path, PurePosixPath
 from urllib.parse import urlsplit, quote_from_bytes, unquote_to_bytes
 from urllib.request import urlopen
 from urllib.error import HTTPError
+from importlib.metadata import version
 
 import yaml
 from cairosvg import svg2png  # type: ignore
@@ -29,6 +30,7 @@ LAYOUT_PREAMBLE = """\
 #layout:
 """
 APP_URL = "https://caksoylar.github.io/keymap-drawer"
+REPO_REF = f"v{version('keymap_drawer')}"
 
 
 def svg_to_html(svg_string: str) -> str:
@@ -81,7 +83,7 @@ def draw(yaml_str: str, config: DrawConfig) -> str:
 @st.cache_resource
 def get_example_yamls() -> dict[str, str]:
     """Return mapping of example keymap YAML names to contents."""
-    repo_zip =_download_zip("caksoylar", "keymap-drawer", "main")
+    repo_zip =_download_zip("caksoylar", "keymap-drawer", REPO_REF)
     with zipfile.ZipFile(io.BytesIO(repo_zip)) as zipped:
         files = zipped.namelist()
         example_paths = sorted([Path(path) for path in files if fnmatch.fnmatch(path, "*/examples/*.yaml")])
