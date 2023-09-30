@@ -15,6 +15,7 @@ from importlib.metadata import version
 
 import yaml
 from cairosvg import svg2png  # type: ignore
+import timeout_decorator
 
 from keymap_drawer.draw import KeymapDrawer
 from keymap_drawer.config import Config, DrawConfig, ParseConfig
@@ -32,11 +33,8 @@ LAYOUT_PREAMBLE = """\
 APP_URL = "https://caksoylar.github.io/keymap-drawer"
 REPO_REF = f"v{version('keymap_drawer')}"
 
-
-def svg_to_html(svg_string: str) -> str:
-    """Convert SVG string in SVG/XML format to one embedded in a img tag."""
-    b64 = base64.b64encode(svg_string.encode("utf-8")).decode("utf-8")
-    return f'<img src="data:image/svg+xml;base64,{b64}"/>'
+DRAW_TIMEOUT = 10
+PARSE_TIMEOUT = 30
 
 
 def svg_to_png(svg_string: str, dark_bg: bool = False) -> bytes:
@@ -59,6 +57,7 @@ def svg_to_png(svg_string: str, dark_bg: bool = False) -> bytes:
     return svg2png(bytestring=input_svg.encode("utf-8"), background_color="black" if dark_bg else "white")
 
 
+@timeout_decorator.timeout(DRAW_TIMEOUT, use_signals=False)
 def draw(yaml_str: str, config: DrawConfig) -> str:
     """Given a YAML keymap string, draw the keymap in SVG format to a string."""
     yaml_data = yaml.safe_load(yaml_str)
@@ -111,12 +110,14 @@ def parse_config(config: str) -> Config:
     return Config.parse_obj(yaml.safe_load(config))
 
 
+@timeout_decorator.timeout(PARSE_TIMEOUT, use_signals=False)
 def parse_qmk_to_yaml(qmk_keymap_buf: io.BytesIO, config: ParseConfig, num_cols: int) -> str:
     """Parse a given QMK keymap JSON (buffer) into keymap YAML."""
     parsed = QmkJsonParser(config, num_cols).parse(io.TextIOWrapper(qmk_keymap_buf, encoding="utf-8"))
     return yaml.safe_dump(parsed, width=160, sort_keys=False, default_flow_style=None, allow_unicode=True)
 
 
+@timeout_decorator.timeout(PARSE_TIMEOUT, use_signals=False)
 def parse_zmk_to_yaml(zmk_keymap: Path | io.BytesIO, config: ParseConfig, num_cols: int, layout: str) -> str:
     """Parse a given ZMK keymap file (file path or buffer) into keymap YAML."""
     with open(zmk_keymap, encoding="utf-8") if isinstance(zmk_keymap, Path) else io.TextIOWrapper(
@@ -142,7 +143,7 @@ def _get_zmk_ref(owner: str, repo: str, head: str) -> str:
     return sha
 
 
-@st.cache_data(ttl=1800)
+@st.cache_data(ttl=1800, max_entries=64)
 def _download_zip(owner: str, repo: str, sha: str) -> bytes:
     """Use `sha` only used for caching purposes to make sure we are fetching from the same repo state."""
     zip_url = f"https://api.github.com/repos/{owner}/{repo}/zipball/{sha}"
@@ -338,7 +339,7 @@ def main():
         try:
             svg = draw(st.session_state.keymap_yaml, parse_config(st.session_state.kd_config).draw_config)
             st.subheader("Keymap SVG")
-            st.write(svg_to_html(svg), unsafe_allow_html=True)
+            st.image(svg)
 
             with st.expander("Export"):
                 svg_col, png_col = st.columns(2)

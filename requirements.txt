@@ -1,3 +1,7 @@
 keymap-drawer
-streamlit==1.26.0
+
+
+
+streamlit==1.27.0
 cairosvg>=2.7.0,<3
+timeout-decorator
