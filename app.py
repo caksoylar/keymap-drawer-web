@@ -82,7 +82,7 @@ def draw(yaml_str: str, config: DrawConfig) -> str:
 @st.cache_resource
 def get_example_yamls() -> dict[str, str]:
     """Return mapping of example keymap YAML names to contents."""
-    repo_zip =_download_zip("caksoylar", "keymap-drawer", REPO_REF)
+    repo_zip = _download_zip("caksoylar", "keymap-drawer", REPO_REF)
     with zipfile.ZipFile(io.BytesIO(repo_zip)) as zipped:
         files = zipped.namelist()
         example_paths = sorted([Path(path) for path in files if fnmatch.fnmatch(path, "*/examples/*.yaml")])
@@ -212,7 +212,8 @@ def main():
     st.subheader("A visualizer for keyboard keymaps")
     st.caption(
         "Check out the documentation and Python CLI tool in the "
-        "[GitHub repo](https://github.com/caksoylar/keymap-drawer)!"
+        "[GitHub repo](https://github.com/caksoylar/keymap-drawer)! "
+        f"`keymap-drawer` version: {REPO_REF}"
     )
 
     examples = get_example_yamls()
