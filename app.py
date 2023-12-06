@@ -364,7 +364,7 @@ def main():
 
     with st.expander("Configuration", expanded=True):
         st.text_area(
-            label="[Config parameters](https://github.com/caksoylar/keymap-drawer/blob/main/keymap_drawer/config.py)",
+            label=f"[Config parameters](https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md)",
             key="kd_config",
             height=400,
         )
