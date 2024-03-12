@@ -91,17 +91,21 @@ def get_example_yamls() -> dict[str, str]:
         return {path.name: zipped.read(path.as_posix()).decode("utf-8") for path in example_paths}
 
 
-@st.cache_data
-def get_default_config() -> str:
-    """Get and dump default config."""
-
+def _dump_config(cfg: Config) -> str:
     def cfg_str_representer(dumper, in_str):
         if "\n" in in_str:  # use '|' style for multiline strings
             return dumper.represent_scalar("tag:yaml.org,2002:str", in_str, style="|")
         return dumper.represent_scalar("tag:yaml.org,2002:str", in_str)
 
     yaml.representer.SafeRepresenter.add_representer(str, cfg_str_representer)
-    return yaml.safe_dump(Config().dict(), sort_keys=False, allow_unicode=True)
+    return yaml.safe_dump(cfg.dict(), sort_keys=False, allow_unicode=True)
+
+
+@st.cache_data
+def get_default_config() -> str:
+    """Get and dump default config."""
+
+    return _dump_config(Config())
 
 
 @st.cache_data(max_entries=16)
@@ -363,12 +367,38 @@ def main():
             _handle_exception(st, "Error while drawing SVG from keymap YAML", err)
 
     with st.expander("Configuration", expanded=True):
-        st.text_area(
-            label=f"[Config parameters](https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md)",
-            key="kd_config",
-            height=400,
-        )
-        st.download_button(label="Download config", data=st.session_state.kd_config, file_name="my_config.yaml")
+        common_col, raw_col = st.columns(2)
+        with common_col:
+            st.markdown("#### Common configuration options")
+            cfg = parse_config(st.session_state.kd_config).draw_config
+            with st.form("common_config"):
+                cfgs = {
+                    "key_w": st.number_input("`key_w`", help="Key width, only used for ortho layouts (not QMK)", min_value=1, max_value=999, step=1, value=int(cfg.key_w)),
+                    "key_h": st.number_input("`key_h`", help="Key height, used for width as well for QMK layouts", min_value=1, max_value=999, step=1, value=int(cfg.key_h)),
+                    "combo_w": st.number_input("`combo_w`", help="Combo box width", min_value=1, max_value=999, step=1, value=int(cfg.combo_w)),
+                    "combo_h": st.number_input("`combo_h`", help="Combo box height", min_value=1, max_value=999, step=1, value=int(cfg.combo_h)),
+                    "n_columns": st.number_input("`n_columns`", help="Number of layer columns in the output drawing", min_value=1, max_value=99, value=cfg.n_columns),
+                    "separate_combo_diagrams": st.toggle("`separate_combo_diagrams`", help="Draw combos with mini diagrams rather than on layers", value=cfg.separate_combo_diagrams),
+                    "combo_diagrams_scale": st.number_input("`combo_diagrams_scale`", help="Scale factor for mini combo diagrams if `separate_combo_diagrams` is set", value=cfg.combo_diagrams_scale),
+                    "draw_key_sides": st.toggle("`draw_key_sides`", help="Draw key sides, like keycaps", value=cfg.draw_key_sides),
+                    "svg_extra_style": st.text_area("`svg_extra_style`", help="Extra CSS that will be appended to the default `svg_style`", value=cfg.svg_extra_style)
+                }
+
+                common_config_button = st.form_submit_button("Update config")
+                if common_config_button:
+                    current_cfg = parse_config(st.session_state.kd_config)
+                    current_cfg.draw_config = cfg.copy(update=cfgs)
+                    st.session_state.kd_config = _dump_config(current_cfg)
+                    st.rerun()
+
+        with raw_col:
+            st.markdown("#### Raw configuration")
+            st.text_area(
+                label=f"[Config parameters](https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md)",
+                key="kd_config",
+                height=700,
+            )
+            st.download_button(label="Download config", data=st.session_state.kd_config, file_name="my_config.yaml")
 
     st.session_state.user_query = False
 
