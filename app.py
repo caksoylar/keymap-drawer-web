@@ -226,32 +226,32 @@ def main():
     if "keymap_yaml" not in st.session_state:
         st.session_state.keymap_yaml = examples[list(examples)[0]]
 
-    query_params = st.experimental_get_query_params()
     if st.session_state.get("user_query", True):
-        if "keymap_yaml" in query_params:
-            st.session_state.keymap_yaml = decode_permalink_param(query_params["keymap_yaml"][0])
-            st.experimental_set_query_params()
-        st.session_state.example_yaml = query_params.get("example_yaml", [list(examples)[0]])[0]
-        st.session_state.qmk_cols = query_params.get("num_cols", [0])[0]
-        st.session_state.zmk_cols = query_params.get("num_cols", [0])[0]
-        st.session_state.zmk_url = query_params.get("zmk_url", [""])[0]
+        if (query_yaml := st.query_params.get("keymap_yaml")):
+            st.session_state.keymap_yaml = decode_permalink_param(query_yaml)
+            st.query_params.clear()
+        st.session_state.example_yaml = st.query_params.get("example_yaml", list(examples)[0])
+        st.session_state.qmk_cols = int(st.query_params.get("num_cols", "0"))
+        st.session_state.zmk_cols = int(st.query_params.get("num_cols", "0"))
+        st.session_state.zmk_url = st.query_params.get("zmk_url", "")
 
     col_ex, col_qmk, col_zmk = st.columns(3)
     error_placeholder = st.empty()
     with col_ex:
         with st.expander("Example keymaps", expanded=st.session_state.get("example_expanded", False)):
-            with st.form("example_form"):
+            with st.form("example_form", border=False):
                 st.selectbox(label="Load example", options=list(examples), index=0, key="example_yaml")
                 example_submitted = st.form_submit_button(
                     label="Show!", on_click=_set_state, args=["example_expanded"], use_container_width=True
                 )
-                if example_submitted or st.session_state.get("user_query", True) and "example_yaml" in query_params:
+                if example_submitted or st.session_state.get("user_query", True) and "example_yaml" in st.query_params:
                     if example_submitted:
-                        st.experimental_set_query_params(example_yaml=st.session_state.example_yaml)
+                        st.query_params.clear()
+                        st.query_params.example_yaml = st.session_state.example_yaml
                     st.session_state.keymap_yaml = examples[st.session_state.example_yaml]
     with col_qmk:
         with st.expander("Parse from QMK keymap", expanded=st.session_state.get("qmk_expanded", False)):
-            with st.form("qmk_form"):
+            with st.form("qmk_form", border=False):
                 num_cols = st.number_input(
                     "Number of columns in keymap (optional)", min_value=0, max_value=20, key="qmk_cols"
                 )
@@ -271,7 +271,7 @@ def main():
                             _handle_exception(error_placeholder, "Error while parsing QMK keymap", err)
     with col_zmk:
         with st.expander("Parse from ZMK keymap", expanded=st.session_state.get("zmk_expanded", False)):
-            with st.form("zmk_form"):
+            with st.form("zmk_form", border=False):
                 num_cols = st.number_input(
                     "Number of columns in keymap (optional)", min_value=0, max_value=20, key="zmk_cols"
                 )
@@ -288,7 +288,7 @@ def main():
                                 zmk_file,
                                 parse_config(st.session_state.kd_config).parse_config,
                                 num_cols,
-                                query_params.get("layout", [""])[0],
+                                st.query_params.get("layout", ""),
                             )
                         except Exception as err:
                             _handle_exception(error_placeholder, "Error while parsing ZMK keymap", err)
@@ -301,9 +301,10 @@ def main():
                 zmk_url_submitted = st.form_submit_button(
                     label="Parse from URL!", on_click=_set_state, args=["zmk_expanded"], use_container_width=True
                 )
-                if zmk_url_submitted or st.session_state.get("user_query", True) and "zmk_url" in query_params:
+                if zmk_url_submitted or st.session_state.get("user_query", True) and "zmk_url" in st.query_params:
                     if zmk_url_submitted:
-                        st.experimental_set_query_params(zmk_url=st.session_state.zmk_url)
+                        st.query_params.clear()
+                        st.query_params.zmk_url = st.session_state.zmk_url
                     if not st.session_state.zmk_url:
                         st.error(icon="❗", body="Please enter a URL")
                     else:
@@ -312,7 +313,7 @@ def main():
                                 st.session_state.zmk_url,
                                 parse_config(st.session_state.kd_config).parse_config,
                                 num_cols,
-                                query_params.get("layout", [""])[0],
+                                st.query_params.get("layout", ""),
                             )
                         except HTTPError as err:
                             _handle_exception(
