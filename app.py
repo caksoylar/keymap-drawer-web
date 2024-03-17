@@ -211,14 +211,16 @@ def _set_state(arg: str, value: bool = True):
 def main():
     """Lay out Streamlit elements and widgets, run parsing and drawing logic."""
     st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
-    st.write('<style>textarea[class^="st-"] { font-family: monospace; }</style>', unsafe_allow_html=True)
-    st.header("`keymap-drawer` interactive demo")
-    st.subheader("A visualizer for keyboard keymaps")
-    st.caption(
+    st.write('<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>', unsafe_allow_html=True)
+
+    c1, c2 = st.columns(2)
+    c1.image("logo_light.svg")
+    c2.subheader("A visualizer for keyboard keymaps")
+    c2.caption(
         "Check out the documentation and Python CLI tool in the "
-        "[GitHub repo](https://github.com/caksoylar/keymap-drawer)! "
-        f"`keymap-drawer` version: {REPO_REF}"
+        "[GitHub repo](https://github.com/caksoylar/keymap-drawer)!"
     )
+    c2.caption(f"`keymap-drawer` version: {REPO_REF}")
 
     examples = get_example_yamls()
     if not st.session_state.get("kd_config"):
