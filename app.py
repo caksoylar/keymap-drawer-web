@@ -373,33 +373,36 @@ def main():
         common_col, raw_col = st.columns(2)
         with common_col:
             st.markdown("#### Common configuration options")
-            cfg = parse_config(st.session_state.kd_config).draw_config
+            try:
+                cfg = parse_config(st.session_state.kd_config)
+            except Exception as e:
+                cfg = Config()
+            draw_cfg = cfg.draw_config
             cfgs = {}
             with st.form("common_config"):
                 c1, c2 = st.columns(2)
                 with c1:
-                    cfgs["key_w"] = st.number_input("`key_w`", help="Key width, only used for ortho layouts (not QMK)", min_value=1, max_value=999, step=1, value=int(cfg.key_w))
+                    cfgs["key_w"] = st.number_input("`key_w`", help="Key width, only used for ortho layouts (not QMK)", min_value=1, max_value=999, step=1, value=int(draw_cfg.key_w))
                 with c2:
-                    cfgs["key_h"] = st.number_input("`key_h`", help="Key height, used for width as well for QMK layouts", min_value=1, max_value=999, step=1, value=int(cfg.key_h))
+                    cfgs["key_h"] = st.number_input("`key_h`", help="Key height, used for width as well for QMK layouts", min_value=1, max_value=999, step=1, value=int(draw_cfg.key_h))
                 c1, c2 = st.columns(2)
                 with c1:
-                    cfgs["combo_w"] = st.number_input("`combo_w`", help="Combo box width", min_value=1, max_value=999, step=1, value=int(cfg.combo_w))
+                    cfgs["combo_w"] = st.number_input("`combo_w`", help="Combo box width", min_value=1, max_value=999, step=1, value=int(draw_cfg.combo_w))
                 with c2:
-                    cfgs["combo_h"] = st.number_input("`combo_h`", help="Combo box height", min_value=1, max_value=999, step=1, value=int(cfg.combo_h))
-                cfgs["n_columns"] = st.number_input("`n_columns`", help="Number of layer columns in the output drawing", min_value=1, max_value=99, value=cfg.n_columns)
+                    cfgs["combo_h"] = st.number_input("`combo_h`", help="Combo box height", min_value=1, max_value=999, step=1, value=int(draw_cfg.combo_h))
+                cfgs["n_columns"] = st.number_input("`n_columns`", help="Number of layer columns in the output drawing", min_value=1, max_value=99, value=draw_cfg.n_columns)
                 c1, c2 = st.columns(2)
                 with c1:
-                    cfgs["separate_combo_diagrams"] = st.toggle("`separate_combo_diagrams`", help="Draw combos with mini diagrams rather than on layers", value=cfg.separate_combo_diagrams)
+                    cfgs["separate_combo_diagrams"] = st.toggle("`separate_combo_diagrams`", help="Draw combos with mini diagrams rather than on layers", value=draw_cfg.separate_combo_diagrams)
                 with c2:
-                    cfgs["combo_diagrams_scale"] = st.number_input("`combo_diagrams_scale`", help="Scale factor for mini combo diagrams if `separate_combo_diagrams` is set", value=cfg.combo_diagrams_scale)
-                cfgs["draw_key_sides"] = st.toggle("`draw_key_sides`", help="Draw key sides, like keycaps", value=cfg.draw_key_sides)
-                cfgs["svg_extra_style"] = st.text_area("`svg_extra_style`", help="Extra CSS that will be appended to the default `svg_style`", value=cfg.svg_extra_style)
+                    cfgs["combo_diagrams_scale"] = st.number_input("`combo_diagrams_scale`", help="Scale factor for mini combo diagrams if `separate_combo_diagrams` is set", value=draw_cfg.combo_diagrams_scale)
+                cfgs["draw_key_sides"] = st.toggle("`draw_key_sides`", help="Draw key sides, like keycaps", value=draw_cfg.draw_key_sides)
+                cfgs["svg_extra_style"] = st.text_area("`svg_extra_style`", help="Extra CSS that will be appended to the default `svg_style`", value=draw_cfg.svg_extra_style)
 
                 common_config_button = st.form_submit_button("Update config")
                 if common_config_button:
-                    current_cfg = parse_config(st.session_state.kd_config)
-                    current_cfg.draw_config = cfg.copy(update=cfgs)
-                    st.session_state.kd_config = _dump_config(current_cfg)
+                    cfg.draw_config = draw_cfg.copy(update=cfgs)
+                    st.session_state.kd_config = _dump_config(cfg)
                     st.rerun()
 
         with raw_col:
