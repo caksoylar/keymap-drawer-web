@@ -240,27 +240,23 @@ def main():
     col_ex, col_qmk, col_zmk = st.columns(3)
     error_placeholder = st.empty()
     with col_ex:
-        with st.expander("Example keymaps", expanded=st.session_state.get("example_expanded", False)):
+        with st.popover("Example keymaps", use_container_width=True):
             with st.form("example_form", border=False):
                 st.selectbox(label="Load example", options=list(examples), index=0, key="example_yaml")
-                example_submitted = st.form_submit_button(
-                    label="Show!", on_click=_set_state, args=["example_expanded"], use_container_width=True
-                )
+                example_submitted = st.form_submit_button(label="Show!", use_container_width=True)
                 if example_submitted or st.session_state.get("user_query", True) and "example_yaml" in st.query_params:
                     if example_submitted:
                         st.query_params.clear()
                         st.query_params.example_yaml = st.session_state.example_yaml
                     st.session_state.keymap_yaml = examples[st.session_state.example_yaml]
     with col_qmk:
-        with st.expander("Parse from QMK keymap", expanded=st.session_state.get("qmk_expanded", False)):
+        with st.popover("Parse from QMK keymap", use_container_width=True):
             with st.form("qmk_form", border=False):
                 num_cols = st.number_input(
                     "Number of columns in keymap (optional)", min_value=0, max_value=20, key="qmk_cols"
                 )
                 qmk_file = st.file_uploader(label="Import QMK `keymap.json`", type=["json"])
-                qmk_submitted = st.form_submit_button(
-                    label="Parse!", on_click=_set_state, args=["qmk_expanded"], use_container_width=True
-                )
+                qmk_submitted = st.form_submit_button(label="Parse!", use_container_width=True)
                 if qmk_submitted:
                     if not qmk_file:
                         st.error(icon="❗", body="Please upload a keymap file")
@@ -272,15 +268,13 @@ def main():
                         except Exception as err:
                             _handle_exception(error_placeholder, "Error while parsing QMK keymap", err)
     with col_zmk:
-        with st.expander("Parse from ZMK keymap", expanded=st.session_state.get("zmk_expanded", False)):
+        with st.popover("Parse from ZMK keymap", use_container_width=True):
             with st.form("zmk_form", border=False):
                 num_cols = st.number_input(
                     "Number of columns in keymap (optional)", min_value=0, max_value=20, key="zmk_cols"
                 )
                 zmk_file = st.file_uploader(label="Import a ZMK `<keyboard>.keymap` file", type=["keymap"])
-                zmk_file_submitted = st.form_submit_button(
-                    label="Parse from file!", on_click=_set_state, args=["zmk_expanded"], use_container_width=True
-                )
+                zmk_file_submitted = st.form_submit_button(label="Parse from file!", use_container_width=True)
                 if zmk_file_submitted:
                     if not zmk_file:
                         st.error(icon="❗", body="Please upload a keymap file")
@@ -300,9 +294,7 @@ def main():
                     placeholder="https://github.com/caksoylar/zmk-config/blob/main/config/hypergolic.keymap",
                     key="zmk_url",
                 )
-                zmk_url_submitted = st.form_submit_button(
-                    label="Parse from URL!", on_click=_set_state, args=["zmk_expanded"], use_container_width=True
-                )
+                zmk_url_submitted = st.form_submit_button(label="Parse from URL!", use_container_width=True)
                 if zmk_url_submitted or st.session_state.get("user_query", True) and "zmk_url" in st.query_params:
                     if zmk_url_submitted:
                         st.query_params.clear()
@@ -346,7 +338,7 @@ def main():
     with draw_col:
         try:
             svg = draw(st.session_state.keymap_yaml, parse_config(st.session_state.kd_config).draw_config)
-            st.subheader("Keymap SVG")
+            st.subheader("Keymap visualization")
             st.image(svg)
 
             with st.expander("Export"):
