@@ -3,5 +3,6 @@ keymap-drawer
 
 
 streamlit==1.32.2
+streamlit-code-editor==0.1.12
 cairosvg>=2.7.0,<3
 timeout-decorator

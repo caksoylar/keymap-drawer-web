@@ -22,6 +22,7 @@ from keymap_drawer.config import Config, DrawConfig, ParseConfig
 from keymap_drawer.parse import QmkJsonParser, ZmkKeymapParser
 
 import streamlit as st
+from code_editor import code_editor
 
 
 LAYOUT_PREAMBLE = """\
@@ -35,6 +36,34 @@ REPO_REF = f"v{version('keymap_drawer')}"
 
 DRAW_TIMEOUT = 10
 PARSE_TIMEOUT = 30
+
+EDITOR_BUTTONS = [
+    {
+        "name": "Settings",
+        "feather": "Settings",
+        "alwaysOn": True,
+        "commands": ["showSettingsMenu"],
+        "style": {"top": "0rem", "right": "0.4rem"},
+    },
+    {
+        "name": "Shortcuts",
+        "feather": "Type",
+        "class": "shortcuts-button",
+        "hasText": True,
+        "commands": ["toggleKeyboardShortcuts"],
+        "style": {"top": "2.0rem", "right": "0.4rem"},
+    },
+    {
+        "name": "Run",
+        "feather": "Play",
+        "primary": True,
+        "hasText": True,
+        "alwaysOn": True,
+        "showWithIcon": True,
+        "commands": ["submit"],
+        "style": {"bottom": "0.44rem", "right": "0.4rem"},
+    },
+]
 
 
 def svg_to_png(svg_string: str, dark_bg: bool = False) -> bytes:
@@ -227,6 +256,8 @@ def main():
         st.session_state.kd_config = get_default_config()
     if "keymap_yaml" not in st.session_state:
         st.session_state.keymap_yaml = examples[list(examples)[0]]
+    if "code_id" not in st.session_state:
+        st.session_state.code_id = ""
 
     if st.session_state.get("user_query", True):
         if (query_yaml := st.query_params.get("keymap_yaml")):
@@ -236,6 +267,7 @@ def main():
         st.session_state.qmk_cols = int(st.query_params.get("num_cols", "0"))
         st.session_state.zmk_cols = int(st.query_params.get("num_cols", "0"))
         st.session_state.zmk_url = st.query_params.get("zmk_url", "")
+
 
     col_ex, col_qmk, col_zmk = st.columns(3)
     error_placeholder = st.empty()
@@ -324,11 +356,20 @@ def main():
     keymap_col, draw_col = st.columns(2)
     with keymap_col:
         st.subheader("Keymap YAML")
-        st.text_area(
-            height=800,
-            key="keymap_yaml",
-            label="[Keymap Spec](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md)",
+        st.caption("[Keymap Spec](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md)")
+        response_dict = code_editor(
+            code=st.session_state.keymap_yaml,
+            lang="yaml",
+            height="800px",
+            allow_reset=True,
+            buttons=EDITOR_BUTTONS,
+            key="keymap_editor",
+            options={"wrap": True, "tabSize": 2},
         )
+        if response_dict["type"] == "submit" and response_dict["text"] and response_dict["id"] != st.session_state.code_id:
+            st.session_state.keymap_yaml = response_dict["text"]
+            st.session_state.code_id = response_dict["id"]
+            st.rerun()
 
         st.download_button(label="Download keymap", data=st.session_state.keymap_yaml, file_name="my_keymap.yaml")
         permabutton = st.button(label="Get permalink to keymap")
