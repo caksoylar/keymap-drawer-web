@@ -1,29 +1,28 @@
 """Simple streamlit app for interactive parsing and drawing."""
+
+import base64
+import fnmatch
+import gzip
 import io
 import json
-import gzip
-import base64
-import zipfile
-import tempfile
-import fnmatch
 import re
-from pathlib import Path, PurePosixPath
-from urllib.parse import urlsplit, quote_from_bytes, unquote_to_bytes
-from urllib.request import urlopen
-from urllib.error import HTTPError
+import tempfile
+import zipfile
 from importlib.metadata import version
+from pathlib import Path, PurePosixPath
+from urllib.error import HTTPError
+from urllib.parse import quote_from_bytes, unquote_to_bytes, urlsplit
+from urllib.request import urlopen
 
+import timeout_decorator
 import yaml
 from cairosvg import svg2png  # type: ignore
-import timeout_decorator
-
-from keymap_drawer.draw import KeymapDrawer
+from code_editor import code_editor
 from keymap_drawer.config import Config, DrawConfig, ParseConfig
+from keymap_drawer.draw import KeymapDrawer
 from keymap_drawer.parse import QmkJsonParser, ZmkKeymapParser
 
 import streamlit as st
-from code_editor import code_editor
-
 
 LAYOUT_PREAMBLE = """\
 # FILL IN below field with a value like {qmk_keyboard: ferris/sweep}
@@ -89,6 +88,7 @@ def svg_to_png(svg_string: str, dark_bg: bool = False) -> bytes:
 @timeout_decorator.timeout(DRAW_TIMEOUT, use_signals=False)
 def draw(yaml_str: str, config: DrawConfig) -> str:
     """Given a YAML keymap string, draw the keymap in SVG format to a string."""
+    assert yaml_str, "Keymap YAML is empty, nothing to draw"
     yaml_data = yaml.safe_load(yaml_str)
     assert "layers" in yaml_data, 'Keymap needs to be specified via the "layers" field in keymap YAML'
     assert "layout" in yaml_data, 'Physical layout needs to be specified via the "layout" field in keymap YAML'
@@ -153,8 +153,10 @@ def parse_qmk_to_yaml(qmk_keymap_buf: io.BytesIO, config: ParseConfig, num_cols:
 @timeout_decorator.timeout(PARSE_TIMEOUT, use_signals=False)
 def parse_zmk_to_yaml(zmk_keymap: Path | io.BytesIO, config: ParseConfig, num_cols: int, layout: str) -> str:
     """Parse a given ZMK keymap file (file path or buffer) into keymap YAML."""
-    with open(zmk_keymap, encoding="utf-8") if isinstance(zmk_keymap, Path) else io.TextIOWrapper(
-        zmk_keymap, encoding="utf-8"
+    with (
+        open(zmk_keymap, encoding="utf-8")
+        if isinstance(zmk_keymap, Path)
+        else io.TextIOWrapper(zmk_keymap, encoding="utf-8")
     ) as keymap_buf:
         parsed = ZmkKeymapParser(config, num_cols).parse(keymap_buf)
     if layout:  # assign or override layout field if provided in app
@@ -240,7 +242,9 @@ def _set_state(arg: str, value: bool = True):
 def main():
     """Lay out Streamlit elements and widgets, run parsing and drawing logic."""
     st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
-    st.write('<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>', unsafe_allow_html=True)
+    st.write(
+        '<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>', unsafe_allow_html=True
+    )
 
     need_rerun = False
 
@@ -254,7 +258,7 @@ def main():
     c2.caption(f"`keymap-drawer` version: {REPO_REF}")
 
     examples = get_example_yamls()
-    if not st.session_state.get("kd_config"):
+    if "kd_config" not in st.session_state:
         st.session_state.kd_config = get_default_config()
     if "keymap_yaml" not in st.session_state:
         st.session_state.keymap_yaml = examples[list(examples)[0]]
@@ -262,14 +266,13 @@ def main():
         st.session_state.code_id = ""
 
     if st.session_state.get("user_query", True):
-        if (query_yaml := st.query_params.get("keymap_yaml")):
+        if query_yaml := st.query_params.get("keymap_yaml"):
             st.session_state.keymap_yaml = decode_permalink_param(query_yaml)
             st.query_params.clear()
         st.session_state.example_yaml = st.query_params.get("example_yaml", list(examples)[0])
         st.session_state.qmk_cols = int(st.query_params.get("num_cols", "0"))
         st.session_state.zmk_cols = int(st.query_params.get("num_cols", "0"))
         st.session_state.zmk_url = st.query_params.get("zmk_url", "")
-
 
     col_ex, col_qmk, col_zmk = st.columns(3)
     error_placeholder = st.empty()
@@ -368,7 +371,7 @@ def main():
             key="keymap_editor",
             options={"wrap": True, "tabSize": 2},
         )
-        if response_dict["type"] == "submit" and response_dict["text"] and response_dict["id"] != st.session_state.code_id:
+        if response_dict["type"] == "submit" and response_dict["id"] != st.session_state.code_id:
             st.session_state.keymap_yaml = response_dict["text"]
             st.session_state.code_id = response_dict["id"]
             need_rerun = True
@@ -410,29 +413,77 @@ def main():
             st.markdown("#### Common configuration options")
             try:
                 cfg = parse_config(st.session_state.kd_config)
-            except Exception as e:
+            except Exception:
                 cfg = Config()
             draw_cfg = cfg.draw_config
             cfgs = {}
             with st.form("common_config"):
                 c1, c2 = st.columns(2)
                 with c1:
-                    cfgs["key_w"] = st.number_input("`key_w`", help="Key width, only used for ortho layouts (not QMK)", min_value=1, max_value=999, step=1, value=int(draw_cfg.key_w))
+                    cfgs["key_w"] = st.number_input(
+                        "`key_w`",
+                        help="Key width, only used for ortho layouts (not QMK)",
+                        min_value=1,
+                        max_value=999,
+                        step=1,
+                        value=int(draw_cfg.key_w),
+                    )
                 with c2:
-                    cfgs["key_h"] = st.number_input("`key_h`", help="Key height, used for width as well for QMK layouts", min_value=1, max_value=999, step=1, value=int(draw_cfg.key_h))
+                    cfgs["key_h"] = st.number_input(
+                        "`key_h`",
+                        help="Key height, used for width as well for QMK layouts",
+                        min_value=1,
+                        max_value=999,
+                        step=1,
+                        value=int(draw_cfg.key_h),
+                    )
                 c1, c2 = st.columns(2)
                 with c1:
-                    cfgs["combo_w"] = st.number_input("`combo_w`", help="Combo box width", min_value=1, max_value=999, step=1, value=int(draw_cfg.combo_w))
+                    cfgs["combo_w"] = st.number_input(
+                        "`combo_w`",
+                        help="Combo box width",
+                        min_value=1,
+                        max_value=999,
+                        step=1,
+                        value=int(draw_cfg.combo_w),
+                    )
                 with c2:
-                    cfgs["combo_h"] = st.number_input("`combo_h`", help="Combo box height", min_value=1, max_value=999, step=1, value=int(draw_cfg.combo_h))
-                cfgs["n_columns"] = st.number_input("`n_columns`", help="Number of layer columns in the output drawing", min_value=1, max_value=99, value=draw_cfg.n_columns)
+                    cfgs["combo_h"] = st.number_input(
+                        "`combo_h`",
+                        help="Combo box height",
+                        min_value=1,
+                        max_value=999,
+                        step=1,
+                        value=int(draw_cfg.combo_h),
+                    )
+                cfgs["n_columns"] = st.number_input(
+                    "`n_columns`",
+                    help="Number of layer columns in the output drawing",
+                    min_value=1,
+                    max_value=99,
+                    value=draw_cfg.n_columns,
+                )
                 c1, c2 = st.columns(2)
                 with c1:
-                    cfgs["separate_combo_diagrams"] = st.toggle("`separate_combo_diagrams`", help="Draw combos with mini diagrams rather than on layers", value=draw_cfg.separate_combo_diagrams)
+                    cfgs["separate_combo_diagrams"] = st.toggle(
+                        "`separate_combo_diagrams`",
+                        help="Draw combos with mini diagrams rather than on layers",
+                        value=draw_cfg.separate_combo_diagrams,
+                    )
                 with c2:
-                    cfgs["combo_diagrams_scale"] = st.number_input("`combo_diagrams_scale`", help="Scale factor for mini combo diagrams if `separate_combo_diagrams` is set", value=draw_cfg.combo_diagrams_scale)
-                cfgs["draw_key_sides"] = st.toggle("`draw_key_sides`", help="Draw key sides, like keycaps", value=draw_cfg.draw_key_sides)
-                cfgs["svg_extra_style"] = st.text_area("`svg_extra_style`", help="Extra CSS that will be appended to the default `svg_style`", value=draw_cfg.svg_extra_style)
+                    cfgs["combo_diagrams_scale"] = st.number_input(
+                        "`combo_diagrams_scale`",
+                        help="Scale factor for mini combo diagrams if `separate_combo_diagrams` is set",
+                        value=draw_cfg.combo_diagrams_scale,
+                    )
+                cfgs["draw_key_sides"] = st.toggle(
+                    "`draw_key_sides`", help="Draw key sides, like keycaps", value=draw_cfg.draw_key_sides
+                )
+                cfgs["svg_extra_style"] = st.text_area(
+                    "`svg_extra_style`",
+                    help="Extra CSS that will be appended to the default `svg_style`",
+                    value=draw_cfg.svg_extra_style,
+                )
 
                 common_config_button = st.form_submit_button("Update config")
                 if common_config_button:
