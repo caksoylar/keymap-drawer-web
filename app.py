@@ -242,6 +242,8 @@ def main():
     st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
     st.write('<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>', unsafe_allow_html=True)
 
+    need_rerun = False
+
     c1, c2 = st.columns(2)
     c1.image("logo_light.svg")
     c2.subheader("A visualizer for keyboard keymaps")
@@ -369,7 +371,7 @@ def main():
         if response_dict["type"] == "submit" and response_dict["text"] and response_dict["id"] != st.session_state.code_id:
             st.session_state.keymap_yaml = response_dict["text"]
             st.session_state.code_id = response_dict["id"]
-            st.rerun()
+            need_rerun = True
 
         st.download_button(label="Download keymap", data=st.session_state.keymap_yaml, file_name="my_keymap.yaml")
         permabutton = st.button(label="Get permalink to keymap")
@@ -436,7 +438,7 @@ def main():
                 if common_config_button:
                     cfg.draw_config = draw_cfg.copy(update=cfgs)
                     st.session_state.kd_config = _dump_config(cfg)
-                    st.rerun()
+                    need_rerun = True
 
         with raw_col:
             st.markdown("#### Raw configuration")
@@ -448,6 +450,8 @@ def main():
             st.download_button(label="Download config", data=st.session_state.kd_config, file_name="my_config.yaml")
 
     st.session_state.user_query = False
+    if need_rerun:  # rerun if keymap editor needs to be explicitly refreshed or config updates need to be propagated
+        st.rerun()
 
 
 main()
