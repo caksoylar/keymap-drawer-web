@@ -33,6 +33,8 @@ LAYOUT_PREAMBLE = """\
 APP_URL = "https://caksoylar.github.io/keymap-drawer"
 REPO_REF = f"v{version('keymap_drawer')}"
 
+FOOTER = 'Created with <a href="https://github.com/caksoylar/keymap-drawer">keymap-drawer</a>'
+
 DRAW_TIMEOUT = 10
 PARSE_TIMEOUT = 30
 
@@ -81,6 +83,9 @@ def svg_to_png(svg_string: str, dark_bg: bool = False) -> bytes:
 
     # remove relative font size specifiers since cairosvg can't handle them
     input_svg = re.sub(r'style="font-size: \d+(\.\d+)?%"', "", input_svg)
+
+    # remove links, e.g. from the footer text
+    input_svg = re.sub(r"<a .*?>|</a>", "", input_svg)
 
     return svg2png(bytestring=input_svg.encode("utf-8"), background_color="black" if dark_bg else "white")
 
@@ -134,7 +139,7 @@ def _dump_config(cfg: Config) -> str:
 def get_default_config() -> str:
     """Get and dump default config."""
 
-    return _dump_config(Config())
+    return _dump_config(Config(draw_config={"footer_text": FOOTER}))
 
 
 @st.cache_data(max_entries=16)
@@ -414,7 +419,7 @@ def main():
             try:
                 cfg = parse_config(st.session_state.kd_config)
             except Exception:
-                cfg = Config()
+                cfg = parse_config(get_default_config())
             draw_cfg = cfg.draw_config
             cfgs = {}
             with st.form("common_config"):
@@ -484,6 +489,12 @@ def main():
                     help="Extra CSS that will be appended to the default `svg_style`",
                     value=draw_cfg.svg_extra_style,
                 )
+                if "footer_text" in draw_cfg.model_fields:
+                    cfgs["footer_text"] = st.text_input(
+                        "`footer_text`",
+                        help="Footer text that will be inserted at the bottom of the drawing",
+                        value=draw_cfg.footer_text,
+                    )
 
                 common_config_button = st.form_submit_button("Update config")
                 if common_config_button:
