@@ -139,7 +139,7 @@ def _dump_config(cfg: Config) -> str:
 def get_default_config() -> str:
     """Get and dump default config."""
 
-    return _dump_config(Config(draw_config={"footer_text": FOOTER}))
+    return _dump_config(Config(draw_config={"footer_text": FOOTER, "dark_mode": "auto"}))
 
 
 @st.cache_data(max_entries=16)
@@ -468,6 +468,17 @@ def main():
                     max_value=99,
                     value=draw_cfg.n_columns,
                 )
+                if "dark_mode" in draw_cfg.model_fields:
+                    dark_mode_options = {"Auto": "auto", "Off": False, "On": True}
+                    cfgs["dark_mode"] = dark_mode_options[
+                        st.radio(
+                            "`dark_mode`",
+                            options=list(dark_mode_options),
+                            help='Turn on dark mode, "auto" adapts it to the web page or OS light/dark setting',
+                            horizontal=True,
+                            index=list(dark_mode_options.values()).index(draw_cfg.dark_mode),
+                        )
+                    ]
                 c1, c2 = st.columns(2)
                 with c1:
                     cfgs["separate_combo_diagrams"] = st.toggle(
