@@ -254,7 +254,7 @@ def main():
     need_rerun = False
 
     c1, c2 = st.columns(2)
-    c1.image("logo_light.svg")
+    c1.image("logo.svg")
     c2.subheader("A visualizer for keyboard keymaps")
     c2.caption(
         "Check out the documentation and Python CLI tool in the "
