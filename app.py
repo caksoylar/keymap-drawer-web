@@ -260,7 +260,7 @@ def main():
         "Check out the documentation and Python CLI tool in the "
         "[GitHub repo](https://github.com/caksoylar/keymap-drawer)!"
     )
-    c2.caption(f"`keymap-drawer` version: {REPO_REF}")
+    c2.caption(f"`keymap-drawer` version: [{REPO_REF}](https://github.com/caksoylar/keymap-drawer/releases/tag/{REPO_REF})")
 
     examples = get_example_yamls()
     if "kd_config" not in st.session_state:
