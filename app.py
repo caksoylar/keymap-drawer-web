@@ -67,6 +67,7 @@ EDITOR_BUTTONS = [
 ]
 
 
+@st.cache_data(max_entries=16)
 def svg_to_png(svg_string: str, background_color: str) -> bytes:
     """
     Convert SVG string in SVG/XML format to PNG using cairosvg, removing the unsupported stroke style for layer headers.
