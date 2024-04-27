@@ -67,16 +67,12 @@ EDITOR_BUTTONS = [
 ]
 
 
-def svg_to_png(svg_string: str, dark_bg: bool = False) -> bytes:
+def svg_to_png(svg_string: str, background_color: str) -> bytes:
     """
     Convert SVG string in SVG/XML format to PNG using cairosvg, removing the unsupported stroke style for layer headers.
     """
-    # remove white outline from layer headers, since we know the background color
-    input_svg = svg_string.replace("stroke: white;", "")
-
-    # change layer header to white if on black background
-    if dark_bg:
-        input_svg = input_svg.replace("text.label {", "text.label { fill: white;")
+    # remove outline from layer headers and footer, they cause rendering issues
+    input_svg = re.sub("</style>", "text.label, text.footer { stroke: none; }</style>", svg_string)
 
     # force text font to DejaVu Sans Mono, since cairosvg does not properly use font-family attribute
     input_svg = input_svg.replace("font-family: ", "font-family: DejaVu Sans Mono,")
@@ -87,7 +83,7 @@ def svg_to_png(svg_string: str, dark_bg: bool = False) -> bytes:
     # remove links, e.g. from the footer text
     input_svg = re.sub(r"<a .*?>|</a>", "", input_svg)
 
-    return svg2png(bytestring=input_svg.encode("utf-8"), background_color="black" if dark_bg else "white")
+    return svg2png(bytestring=input_svg.encode("utf-8"), background_color=background_color)
 
 
 @timeout_decorator.timeout(DRAW_TIMEOUT, use_signals=False)
@@ -388,7 +384,8 @@ def main():
 
     with draw_col:
         try:
-            svg = draw(st.session_state.keymap_yaml, parse_config(st.session_state.kd_config).draw_config)
+            draw_cfg = parse_config(st.session_state.kd_config).draw_config
+            svg = draw(st.session_state.keymap_yaml, draw_cfg)
             st.subheader("Keymap visualization")
             st.image(svg)
 
@@ -396,16 +393,26 @@ def main():
                 svg_col, png_col = st.columns(2)
                 with svg_col:
                     st.subheader("SVG")
-                    st.download_button(label="Download", data=svg, file_name="my_keymap.svg")
+                    bg_override = st.checkbox("Override background", value=False)
+                    bg_color = st.color_picker("SVG background color", disabled=not bg_override)
+                    if bg_override:
+                        draw_cfg = draw_cfg.copy(
+                            update={"svg_extra_style": draw_cfg.svg_extra_style + f"\nsvg.keymap {{ background-color: {bg_color}; }}"}
+                        )
+                        export_svg = draw(st.session_state.keymap_yaml, draw_cfg)
+                    else:
+                        export_svg = svg
+                    st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg")
 
                 with png_col:
                     st.subheader("PNG")
                     st.caption(
-                        "Note: Export might not render emojis and unicode characters as well as your browser and uses a fixed text font"
+                        "Note: Export might not render emojis and unicode characters as well as your browser, "
+                        "uses a fixed text font and does not support auto dark mode"
                     )
-                    png_bg = st.radio("Background", ("White", "Black"))
+                    bg_color = st.color_picker("PNG background color")
                     st.download_button(
-                        label="Export", data=svg_to_png(svg, png_bg == "Black"), file_name="my_keymap.png"
+                        label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png"
                     )
         except yaml.YAMLError as err:
             _handle_exception(st, "Could not parse keymap YAML, please check for syntax errors", err)
