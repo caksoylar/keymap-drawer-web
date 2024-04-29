@@ -23,6 +23,7 @@ from keymap_drawer.draw import KeymapDrawer
 from keymap_drawer.parse import QmkJsonParser, ZmkKeymapParser
 
 import streamlit as st
+from streamlit import session_state as state
 
 LAYOUT_PREAMBLE = """\
 # FILL IN below field with a value like {qmk_keyboard: ferris/sweep}
@@ -238,7 +239,7 @@ def _handle_exception(container, message: str, exc: Exception):
 
 
 def _set_state(arg: str, value: bool = True):
-    st.session_state[arg] = value
+    state[arg] = value
 
 
 def main():
@@ -260,21 +261,21 @@ def main():
     c2.caption(f"`keymap-drawer` version: [{REPO_REF}](https://github.com/caksoylar/keymap-drawer/releases/tag/{REPO_REF})")
 
     examples = get_example_yamls()
-    if "kd_config" not in st.session_state:
-        st.session_state.kd_config = get_default_config()
-    if "keymap_yaml" not in st.session_state:
-        st.session_state.keymap_yaml = examples[list(examples)[0]]
-    if "code_id" not in st.session_state:
-        st.session_state.code_id = ""
+    if "kd_config" not in state:
+        state.kd_config = get_default_config()
+    if "keymap_yaml" not in state:
+        state.keymap_yaml = examples[list(examples)[0]]
+    if "code_id" not in state:
+        state.code_id = ""
 
-    if st.session_state.get("user_query", True):
+    if state.get("user_query", True):
         if query_yaml := st.query_params.get("keymap_yaml"):
-            st.session_state.keymap_yaml = decode_permalink_param(query_yaml)
+            state.keymap_yaml = decode_permalink_param(query_yaml)
             st.query_params.clear()
-        st.session_state.example_yaml = st.query_params.get("example_yaml", list(examples)[0])
-        st.session_state.qmk_cols = int(st.query_params.get("num_cols", "0"))
-        st.session_state.zmk_cols = int(st.query_params.get("num_cols", "0"))
-        st.session_state.zmk_url = st.query_params.get("zmk_url", "")
+        state.example_yaml = st.query_params.get("example_yaml", list(examples)[0])
+        state.qmk_cols = int(st.query_params.get("num_cols", "0"))
+        state.zmk_cols = int(st.query_params.get("num_cols", "0"))
+        state.zmk_url = st.query_params.get("zmk_url", "")
 
     col_ex, col_qmk, col_zmk = st.columns(3)
     error_placeholder = st.empty()
@@ -283,11 +284,11 @@ def main():
             with st.form("example_form", border=False):
                 st.selectbox(label="Load example", options=list(examples), index=0, key="example_yaml")
                 example_submitted = st.form_submit_button(label="Show!", use_container_width=True)
-                if example_submitted or st.session_state.get("user_query", True) and "example_yaml" in st.query_params:
+                if example_submitted or state.get("user_query", True) and "example_yaml" in st.query_params:
                     if example_submitted:
                         st.query_params.clear()
-                        st.query_params.example_yaml = st.session_state.example_yaml
-                    st.session_state.keymap_yaml = examples[st.session_state.example_yaml]
+                        st.query_params.example_yaml = state.example_yaml
+                    state.keymap_yaml = examples[state.example_yaml]
     with col_qmk:
         with st.popover("Parse from QMK keymap", use_container_width=True):
             with st.form("qmk_form", border=False):
@@ -301,8 +302,8 @@ def main():
                         st.error(icon="❗", body="Please upload a keymap file")
                     else:
                         try:
-                            st.session_state.keymap_yaml = parse_qmk_to_yaml(
-                                qmk_file, parse_config(st.session_state.kd_config).parse_config, num_cols
+                            state.keymap_yaml = parse_qmk_to_yaml(
+                                qmk_file, parse_config(state.kd_config).parse_config, num_cols
                             )
                         except Exception as err:
                             _handle_exception(error_placeholder, "Error while parsing QMK keymap", err)
@@ -319,9 +320,9 @@ def main():
                         st.error(icon="❗", body="Please upload a keymap file")
                     else:
                         try:
-                            st.session_state.keymap_yaml = parse_zmk_to_yaml(
+                            state.keymap_yaml = parse_zmk_to_yaml(
                                 zmk_file,
-                                parse_config(st.session_state.kd_config).parse_config,
+                                parse_config(state.kd_config).parse_config,
                                 num_cols,
                                 st.query_params.get("layout", ""),
                             )
@@ -334,17 +335,17 @@ def main():
                     key="zmk_url",
                 )
                 zmk_url_submitted = st.form_submit_button(label="Parse from URL!", use_container_width=True)
-                if zmk_url_submitted or st.session_state.get("user_query", True) and "zmk_url" in st.query_params:
+                if zmk_url_submitted or state.get("user_query", True) and "zmk_url" in st.query_params:
                     if zmk_url_submitted:
                         st.query_params.clear()
-                        st.query_params.zmk_url = st.session_state.zmk_url
-                    if not st.session_state.zmk_url:
+                        st.query_params.zmk_url = state.zmk_url
+                    if not state.zmk_url:
                         st.error(icon="❗", body="Please enter a URL")
                     else:
                         try:
-                            st.session_state.keymap_yaml = parse_zmk_url_to_yaml(
-                                st.session_state.zmk_url,
-                                parse_config(st.session_state.kd_config).parse_config,
+                            state.keymap_yaml = parse_zmk_url_to_yaml(
+                                state.zmk_url,
+                                parse_config(state.kd_config).parse_config,
                                 num_cols,
                                 st.query_params.get("layout", ""),
                             )
@@ -365,7 +366,7 @@ def main():
         st.subheader("Keymap YAML")
         st.caption("[Keymap Spec](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md)")
         response_dict = code_editor(
-            code=st.session_state.keymap_yaml,
+            code=state.keymap_yaml,
             lang="yaml",
             height="800px",
             allow_reset=True,
@@ -373,20 +374,20 @@ def main():
             key="keymap_editor",
             options={"wrap": True, "tabSize": 2},
         )
-        if response_dict["type"] == "submit" and response_dict["id"] != st.session_state.code_id:
-            st.session_state.keymap_yaml = response_dict["text"]
-            st.session_state.code_id = response_dict["id"]
+        if response_dict["type"] == "submit" and response_dict["id"] != state.code_id:
+            state.keymap_yaml = response_dict["text"]
+            state.code_id = response_dict["id"]
             need_rerun = True
 
-        st.download_button(label="Download keymap", data=st.session_state.keymap_yaml, file_name="my_keymap.yaml")
+        st.download_button(label="Download keymap", data=state.keymap_yaml, file_name="my_keymap.yaml")
         permabutton = st.button(label="Get permalink to keymap")
         if permabutton:
-            st.code(get_permalink(st.session_state.keymap_yaml), language=None)
+            st.code(get_permalink(state.keymap_yaml), language=None)
 
     with draw_col:
         try:
-            draw_cfg = parse_config(st.session_state.kd_config).draw_config
-            svg = draw(st.session_state.keymap_yaml, draw_cfg)
+            draw_cfg = parse_config(state.kd_config).draw_config
+            svg = draw(state.keymap_yaml, draw_cfg)
             st.subheader("Keymap visualization")
             st.image(svg)
 
@@ -400,7 +401,7 @@ def main():
                         draw_cfg = draw_cfg.copy(
                             update={"svg_extra_style": draw_cfg.svg_extra_style + f"\nsvg.keymap {{ background-color: {bg_color}; }}"}
                         )
-                        export_svg = draw(st.session_state.keymap_yaml, draw_cfg)
+                        export_svg = draw(state.keymap_yaml, draw_cfg)
                     else:
                         export_svg = svg
                     st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg")
@@ -425,7 +426,7 @@ def main():
         with common_col:
             st.markdown("#### Common configuration options")
             try:
-                cfg = parse_config(st.session_state.kd_config)
+                cfg = parse_config(state.kd_config)
             except Exception:
                 cfg = parse_config(get_default_config())
             draw_cfg = cfg.draw_config
@@ -518,7 +519,7 @@ def main():
                 common_config_button = st.form_submit_button("Update config")
                 if common_config_button:
                     cfg.draw_config = draw_cfg.copy(update=cfgs)
-                    st.session_state.kd_config = _dump_config(cfg)
+                    state.kd_config = _dump_config(cfg)
                     need_rerun = True
 
         with raw_col:
@@ -528,9 +529,9 @@ def main():
                 key="kd_config",
                 height=700,
             )
-            st.download_button(label="Download config", data=st.session_state.kd_config, file_name="my_config.yaml")
+            st.download_button(label="Download config", data=state.kd_config, file_name="my_config.yaml")
 
-    st.session_state.user_query = False
+    state.user_query = False
     if need_rerun:  # rerun if keymap editor needs to be explicitly refreshed or config updates need to be propagated
         st.rerun()
 
