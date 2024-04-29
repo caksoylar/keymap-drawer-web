@@ -17,25 +17,31 @@ from .constants import DRAW_TIMEOUT, PARSE_TIMEOUT, LAYOUT_PREAMBLE
 
 
 @timeout_decorator.timeout(DRAW_TIMEOUT, use_signals=False)
-def draw(yaml_str: str, config: DrawConfig) -> str:
-    """Given a YAML keymap string, draw the keymap in SVG format to a string."""
+def read_keymap_yaml(yaml_str: str) -> dict:
+    """Read yaml into dict and assert certain elements are in it."""
     assert yaml_str, "Keymap YAML is empty, nothing to draw"
     yaml_data = yaml.safe_load(yaml_str)
     assert "layers" in yaml_data, 'Keymap needs to be specified via the "layers" field in keymap YAML'
     assert "layout" in yaml_data, 'Physical layout needs to be specified via the "layout" field in keymap YAML'
+    return yaml_data
 
-    if custom_config := yaml_data.get("draw_config"):
+
+@timeout_decorator.timeout(DRAW_TIMEOUT, use_signals=False)
+def draw(keymap_data: dict, config: DrawConfig, **draw_args) -> str:
+    """Given a YAML keymap string, draw the keymap in SVG format to a string."""
+
+    if custom_config := keymap_data.get("draw_config"):
         config = config.copy(update=custom_config)
 
     with io.StringIO() as out:
         drawer = KeymapDrawer(
             config=config,
             out=out,
-            layers=yaml_data["layers"],
-            layout=yaml_data["layout"],
-            combos=yaml_data.get("combos", []),
+            layers=keymap_data["layers"],
+            layout=keymap_data["layout"],
+            combos=keymap_data.get("combos", []),
         )
-        drawer.print_board()
+        drawer.print_board(**draw_args)
         return out.getvalue()
 
 

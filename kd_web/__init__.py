@@ -21,6 +21,7 @@ from .utils import (
     svg_to_png,
 )
 from .kd_interface import (
+    read_keymap_yaml,
     draw,
     parse_config,
     parse_qmk_to_yaml,
@@ -208,8 +209,28 @@ def keymap_draw_row(need_rerun: bool):
     with draw_col:
         try:
             draw_cfg = parse_config(state.kd_config).draw_config
-            svg = draw(state.keymap_yaml, draw_cfg)
-            st.subheader("Keymap visualization")
+            keymap_data = read_keymap_yaml(state.keymap_yaml)
+            layer_names = list(keymap_data["layers"])
+
+            draw_opts: dict[str, Any] = {}
+
+            header_col, opts_col = st.columns([0.7, 0.3])
+            with header_col:
+                st.subheader("Keymap visualization")
+            with opts_col:
+                with st.popover("Draw filters", use_container_width=True):
+                    draw_opts["draw_layers"] = st.multiselect("Layers to show", options=layer_names, default=layer_names)
+                    draw_opts["keys_only"] = st.checkbox("Show only keys")
+                    draw_opts["combos_only"] = st.checkbox("Show only combos")
+                    try:
+                        draw_opts["ghost_keys"] = [
+                            int(v) for v in st.text_input("`ghost` keys", help="Space-separated zero-based key position indices to add `type: ghost`").split()
+                        ]
+                    except ValueError as err:
+                        handle_exception(st, "Values must be space-separated integers", err)
+
+            svg = draw(keymap_data, draw_cfg, **draw_opts)
+
             st.image(svg)
 
             with st.expander("Export"):
@@ -222,7 +243,7 @@ def keymap_draw_row(need_rerun: bool):
                         draw_cfg = draw_cfg.copy(
                             update={"svg_extra_style": draw_cfg.svg_extra_style + f"\nsvg.keymap {{ background-color: {bg_color}; }}"}
                         )
-                        export_svg = draw(state.keymap_yaml, draw_cfg)
+                        export_svg = draw(keymap_data, draw_cfg)
                     else:
                         export_svg = svg
                     st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg")
@@ -237,6 +258,7 @@ def keymap_draw_row(need_rerun: bool):
                     st.download_button(
                         label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png"
                     )
+
         except yaml.YAMLError as err:
             handle_exception(st, "Could not parse keymap YAML, please check for syntax errors", err)
         except Exception as err:
