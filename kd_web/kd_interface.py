@@ -2,10 +2,10 @@
 
 import io
 import json
-
-import timeout_decorator
-import yaml
 from pathlib import Path
+
+import timeout_decorator  # type: ignore
+import yaml
 
 from keymap_drawer.config import Config, DrawConfig, ParseConfig
 from keymap_drawer.draw import KeymapDrawer
@@ -68,4 +68,3 @@ def parse_zmk_to_yaml(zmk_keymap: Path | io.BytesIO, config: ParseConfig, num_co
     if "layout" not in parsed:  # pylint: disable=unsupported-membership-test
         return LAYOUT_PREAMBLE + out
     return out
-

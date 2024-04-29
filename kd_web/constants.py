@@ -1,5 +1,6 @@
-from importlib.metadata import version
+"""Constants used for the web app."""
 
+from importlib.metadata import version
 
 APP_URL = "https://caksoylar.github.io/keymap-drawer"
 REPO_REF = f"v{version('keymap_drawer')}"

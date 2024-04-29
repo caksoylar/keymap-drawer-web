@@ -1,26 +1,11 @@
 """Simple streamlit app for interactive parsing and drawing."""
 
-import base64
-import fnmatch
-import gzip
-import io
-import json
-import re
-import tempfile
-import zipfile
 from importlib.metadata import version
-from pathlib import Path, PurePosixPath
 from urllib.error import HTTPError
-from urllib.parse import quote_from_bytes, unquote_to_bytes, urlsplit
-from urllib.request import urlopen
+from typing import Any
 
-import timeout_decorator
 import yaml
-from cairosvg import svg2png  # type: ignore
-from code_editor import code_editor
-from keymap_drawer.config import Config, DrawConfig, ParseConfig
-from keymap_drawer.draw import KeymapDrawer
-from keymap_drawer.parse import QmkJsonParser, ZmkKeymapParser
+from code_editor import code_editor  # type: ignore
 
 import streamlit as st
 from streamlit import session_state as state
@@ -73,14 +58,12 @@ EDITOR_BUTTONS = [
 ]
 
 
-def main():
-    """Lay out Streamlit elements and widgets, run parsing and drawing logic."""
+def setup_page():
+    """Set page config and style, show header row, set up initial state."""
     st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
     st.write(
         '<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>', unsafe_allow_html=True
     )
-
-    need_rerun = False
 
     c1, c2 = st.columns(2)
     c1.image("logo.svg")
@@ -108,6 +91,11 @@ def main():
         state.zmk_cols = int(st.query_params.get("num_cols", "0"))
         state.zmk_url = st.query_params.get("zmk_url", "")
 
+    return examples
+
+
+def examples_parse_row(examples):
+    """Show column with examples and parsing boxes, in order to set up initial keymap."""
     col_ex, col_qmk, col_zmk = st.columns(3)
     error_placeholder = st.empty()
     with col_ex:
@@ -192,6 +180,8 @@ def main():
 
                 st.caption("Please check and if necessary correct the `layout` field after parsing")
 
+def keymap_draw_row(need_rerun: bool):
+    """Show the main row with keymap YAML and visualization columns."""
     keymap_col, draw_col = st.columns(2)
     with keymap_col:
         st.subheader("Keymap YAML")
@@ -251,7 +241,11 @@ def main():
             handle_exception(st, "Could not parse keymap YAML, please check for syntax errors", err)
         except Exception as err:
             handle_exception(st, "Error while drawing SVG from keymap YAML", err)
+    return need_rerun
 
+
+def configuration_row(need_rerun: bool):
+    """Show configuration row with common and raw configuration columns."""
     with st.expander("Configuration", expanded=True):
         common_col, raw_col = st.columns(2)
         with common_col:
@@ -261,7 +255,7 @@ def main():
             except Exception:
                 cfg = parse_config(get_default_config())
             draw_cfg = cfg.draw_config
-            cfgs = {}
+            cfgs: dict[str, Any] = {}
             with st.form("common_config"):
                 c1, c2 = st.columns(2)
                 with c1:
@@ -361,10 +355,18 @@ def main():
                 height=700,
             )
             st.download_button(label="Download config", data=state.kd_config, file_name="my_config.yaml")
+    return need_rerun
+
+
+def main():
+    """Lay out Streamlit elements and widgets, run parsing and drawing logic."""
+    need_rerun = False
+
+    examples = setup_page()
+    examples_parse_row(examples)
+    need_rerun = keymap_draw_row(need_rerun)
+    need_rerun = configuration_row(need_rerun)
 
     state.user_query = False
     if need_rerun:  # rerun if keymap editor needs to be explicitly refreshed or config updates need to be propagated
         st.rerun()
-
-
-main()
