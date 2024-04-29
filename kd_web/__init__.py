@@ -1,0 +1,370 @@
+"""Simple streamlit app for interactive parsing and drawing."""
+
+import base64
+import fnmatch
+import gzip
+import io
+import json
+import re
+import tempfile
+import zipfile
+from importlib.metadata import version
+from pathlib import Path, PurePosixPath
+from urllib.error import HTTPError
+from urllib.parse import quote_from_bytes, unquote_to_bytes, urlsplit
+from urllib.request import urlopen
+
+import timeout_decorator
+import yaml
+from cairosvg import svg2png  # type: ignore
+from code_editor import code_editor
+from keymap_drawer.config import Config, DrawConfig, ParseConfig
+from keymap_drawer.draw import KeymapDrawer
+from keymap_drawer.parse import QmkJsonParser, ZmkKeymapParser
+
+import streamlit as st
+from streamlit import session_state as state
+
+from .utils import (
+    dump_config,
+    handle_exception,
+    decode_permalink_param,
+    get_default_config,
+    get_example_yamls,
+    get_permalink,
+    parse_zmk_url_to_yaml,
+    svg_to_png,
+)
+from .kd_interface import (
+    draw,
+    parse_config,
+    parse_qmk_to_yaml,
+    parse_zmk_to_yaml,
+)
+from .constants import REPO_REF
+
+
+EDITOR_BUTTONS = [
+    {
+        "name": "Settings",
+        "feather": "Settings",
+        "alwaysOn": True,
+        "commands": ["showSettingsMenu"],
+        "style": {"top": "0rem", "right": "0.4rem"},
+    },
+    {
+        "name": "Shortcuts",
+        "feather": "Type",
+        "class": "shortcuts-button",
+        "hasText": True,
+        "commands": ["toggleKeyboardShortcuts"],
+        "style": {"top": "2.0rem", "right": "0.4rem"},
+    },
+    {
+        "name": "Run",
+        "feather": "Play",
+        "primary": True,
+        "hasText": True,
+        "alwaysOn": True,
+        "showWithIcon": True,
+        "commands": ["submit"],
+        "style": {"bottom": "0.44rem", "right": "0.4rem"},
+    },
+]
+
+
+def main():
+    """Lay out Streamlit elements and widgets, run parsing and drawing logic."""
+    st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
+    st.write(
+        '<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>', unsafe_allow_html=True
+    )
+
+    need_rerun = False
+
+    c1, c2 = st.columns(2)
+    c1.image("logo.svg")
+    c2.subheader("A visualizer for keyboard keymaps")
+    c2.caption(
+        "Check out the documentation and Python CLI tool in the "
+        "[GitHub repo](https://github.com/caksoylar/keymap-drawer)!"
+    )
+    c2.caption(f"`keymap-drawer` version: [{REPO_REF}](https://github.com/caksoylar/keymap-drawer/tree/{REPO_REF})")
+
+    examples = get_example_yamls()
+    if "kd_config" not in state:
+        state.kd_config = get_default_config()
+    if "keymap_yaml" not in state:
+        state.keymap_yaml = examples[list(examples)[0]]
+    if "code_id" not in state:
+        state.code_id = ""
+
+    if state.get("user_query", True):
+        if query_yaml := st.query_params.get("keymap_yaml"):
+            state.keymap_yaml = decode_permalink_param(query_yaml)
+            st.query_params.clear()
+        state.example_yaml = st.query_params.get("example_yaml", list(examples)[0])
+        state.qmk_cols = int(st.query_params.get("num_cols", "0"))
+        state.zmk_cols = int(st.query_params.get("num_cols", "0"))
+        state.zmk_url = st.query_params.get("zmk_url", "")
+
+    col_ex, col_qmk, col_zmk = st.columns(3)
+    error_placeholder = st.empty()
+    with col_ex:
+        with st.popover("Example keymaps", use_container_width=True):
+            with st.form("example_form", border=False):
+                st.selectbox(label="Load example", options=list(examples), index=0, key="example_yaml")
+                example_submitted = st.form_submit_button(label="Show!", use_container_width=True)
+                if example_submitted or state.get("user_query", True) and "example_yaml" in st.query_params:
+                    if example_submitted:
+                        st.query_params.clear()
+                        st.query_params.example_yaml = state.example_yaml
+                    state.keymap_yaml = examples[state.example_yaml]
+    with col_qmk:
+        with st.popover("Parse from QMK keymap", use_container_width=True):
+            with st.form("qmk_form", border=False):
+                num_cols = st.number_input(
+                    "Number of columns in keymap (optional)", min_value=0, max_value=20, key="qmk_cols"
+                )
+                qmk_file = st.file_uploader(label="Import QMK `keymap.json`", type=["json"])
+                qmk_submitted = st.form_submit_button(label="Parse!", use_container_width=True)
+                if qmk_submitted:
+                    if not qmk_file:
+                        st.error(icon="❗", body="Please upload a keymap file")
+                    else:
+                        try:
+                            state.keymap_yaml = parse_qmk_to_yaml(
+                                qmk_file, parse_config(state.kd_config).parse_config, num_cols
+                            )
+                        except Exception as err:
+                            handle_exception(error_placeholder, "Error while parsing QMK keymap", err)
+    with col_zmk:
+        with st.popover("Parse from ZMK keymap", use_container_width=True):
+            with st.form("zmk_form", border=False):
+                num_cols = st.number_input(
+                    "Number of columns in keymap (optional)", min_value=0, max_value=20, key="zmk_cols"
+                )
+                zmk_file = st.file_uploader(label="Import a ZMK `<keyboard>.keymap` file", type=["keymap"])
+                zmk_file_submitted = st.form_submit_button(label="Parse from file!", use_container_width=True)
+                if zmk_file_submitted:
+                    if not zmk_file:
+                        st.error(icon="❗", body="Please upload a keymap file")
+                    else:
+                        try:
+                            state.keymap_yaml = parse_zmk_to_yaml(
+                                zmk_file,
+                                parse_config(state.kd_config).parse_config,
+                                num_cols,
+                                st.query_params.get("layout", ""),
+                            )
+                        except Exception as err:
+                            handle_exception(error_placeholder, "Error while parsing ZMK keymap", err)
+
+                st.text_input(
+                    label="or, input GitHub URL to keymap",
+                    placeholder="https://github.com/caksoylar/zmk-config/blob/main/config/hypergolic.keymap",
+                    key="zmk_url",
+                )
+                zmk_url_submitted = st.form_submit_button(label="Parse from URL!", use_container_width=True)
+                if zmk_url_submitted or state.get("user_query", True) and "zmk_url" in st.query_params:
+                    if zmk_url_submitted:
+                        st.query_params.clear()
+                        st.query_params.zmk_url = state.zmk_url
+                    if not state.zmk_url:
+                        st.error(icon="❗", body="Please enter a URL")
+                    else:
+                        try:
+                            state.keymap_yaml = parse_zmk_url_to_yaml(
+                                state.zmk_url,
+                                parse_config(state.kd_config).parse_config,
+                                num_cols,
+                                st.query_params.get("layout", ""),
+                            )
+                        except HTTPError as err:
+                            handle_exception(
+                                error_placeholder,
+                                "Could not get repo contents, make sure you use a branch name"
+                                " or commit SHA and not a tag in the URL",
+                                err,
+                            )
+                        except Exception as err:
+                            handle_exception(error_placeholder, "Error while parsing ZMK keymap from URL", err)
+
+                st.caption("Please check and if necessary correct the `layout` field after parsing")
+
+    keymap_col, draw_col = st.columns(2)
+    with keymap_col:
+        st.subheader("Keymap YAML")
+        st.caption("[Keymap Spec](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md)")
+        response_dict = code_editor(
+            code=state.keymap_yaml,
+            lang="yaml",
+            height="800px",
+            allow_reset=True,
+            buttons=EDITOR_BUTTONS,
+            key="keymap_editor",
+            options={"wrap": True, "tabSize": 2},
+        )
+        if response_dict["type"] == "submit" and response_dict["id"] != state.code_id:
+            state.keymap_yaml = response_dict["text"]
+            state.code_id = response_dict["id"]
+            need_rerun = True
+
+        st.download_button(label="Download keymap", data=state.keymap_yaml, file_name="my_keymap.yaml")
+        permabutton = st.button(label="Get permalink to keymap")
+        if permabutton:
+            st.code(get_permalink(state.keymap_yaml), language=None)
+
+    with draw_col:
+        try:
+            draw_cfg = parse_config(state.kd_config).draw_config
+            svg = draw(state.keymap_yaml, draw_cfg)
+            st.subheader("Keymap visualization")
+            st.image(svg)
+
+            with st.expander("Export"):
+                svg_col, png_col = st.columns(2)
+                with svg_col:
+                    st.subheader("SVG")
+                    bg_override = st.checkbox("Override background", value=False)
+                    bg_color = st.color_picker("SVG background color", disabled=not bg_override)
+                    if bg_override:
+                        draw_cfg = draw_cfg.copy(
+                            update={"svg_extra_style": draw_cfg.svg_extra_style + f"\nsvg.keymap {{ background-color: {bg_color}; }}"}
+                        )
+                        export_svg = draw(state.keymap_yaml, draw_cfg)
+                    else:
+                        export_svg = svg
+                    st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg")
+
+                with png_col:
+                    st.subheader("PNG")
+                    st.caption(
+                        "Note: Export might not render emojis and unicode characters as well as your browser, "
+                        "uses a fixed text font and does not support auto dark mode"
+                    )
+                    bg_color = st.color_picker("PNG background color")
+                    st.download_button(
+                        label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png"
+                    )
+        except yaml.YAMLError as err:
+            handle_exception(st, "Could not parse keymap YAML, please check for syntax errors", err)
+        except Exception as err:
+            handle_exception(st, "Error while drawing SVG from keymap YAML", err)
+
+    with st.expander("Configuration", expanded=True):
+        common_col, raw_col = st.columns(2)
+        with common_col:
+            st.markdown("#### Common configuration options")
+            try:
+                cfg = parse_config(state.kd_config)
+            except Exception:
+                cfg = parse_config(get_default_config())
+            draw_cfg = cfg.draw_config
+            cfgs = {}
+            with st.form("common_config"):
+                c1, c2 = st.columns(2)
+                with c1:
+                    cfgs["key_w"] = st.number_input(
+                        "`key_w`",
+                        help="Key width, only used for ortho layouts (not QMK)",
+                        min_value=1,
+                        max_value=999,
+                        step=1,
+                        value=int(draw_cfg.key_w),
+                    )
+                with c2:
+                    cfgs["key_h"] = st.number_input(
+                        "`key_h`",
+                        help="Key height, used for width as well for QMK layouts",
+                        min_value=1,
+                        max_value=999,
+                        step=1,
+                        value=int(draw_cfg.key_h),
+                    )
+                c1, c2 = st.columns(2)
+                with c1:
+                    cfgs["combo_w"] = st.number_input(
+                        "`combo_w`",
+                        help="Combo box width",
+                        min_value=1,
+                        max_value=999,
+                        step=1,
+                        value=int(draw_cfg.combo_w),
+                    )
+                with c2:
+                    cfgs["combo_h"] = st.number_input(
+                        "`combo_h`",
+                        help="Combo box height",
+                        min_value=1,
+                        max_value=999,
+                        step=1,
+                        value=int(draw_cfg.combo_h),
+                    )
+                cfgs["n_columns"] = st.number_input(
+                    "`n_columns`",
+                    help="Number of layer columns in the output drawing",
+                    min_value=1,
+                    max_value=99,
+                    value=draw_cfg.n_columns,
+                )
+                if "dark_mode" in draw_cfg.model_fields:
+                    dark_mode_options = {"Auto": "auto", "Off": False, "On": True}
+                    cfgs["dark_mode"] = dark_mode_options[
+                        st.radio(
+                            "`dark_mode`",
+                            options=list(dark_mode_options),
+                            help='Turn on dark mode, "auto" adapts it to the web page or OS light/dark setting',
+                            horizontal=True,
+                            index=list(dark_mode_options.values()).index(draw_cfg.dark_mode),
+                        )
+                    ]
+                c1, c2 = st.columns(2)
+                with c1:
+                    cfgs["separate_combo_diagrams"] = st.toggle(
+                        "`separate_combo_diagrams`",
+                        help="Draw combos with mini diagrams rather than on layers",
+                        value=draw_cfg.separate_combo_diagrams,
+                    )
+                with c2:
+                    cfgs["combo_diagrams_scale"] = st.number_input(
+                        "`combo_diagrams_scale`",
+                        help="Scale factor for mini combo diagrams if `separate_combo_diagrams` is set",
+                        value=draw_cfg.combo_diagrams_scale,
+                    )
+                cfgs["draw_key_sides"] = st.toggle(
+                    "`draw_key_sides`", help="Draw key sides, like keycaps", value=draw_cfg.draw_key_sides
+                )
+                cfgs["svg_extra_style"] = st.text_area(
+                    "`svg_extra_style`",
+                    help="Extra CSS that will be appended to the default `svg_style`",
+                    value=draw_cfg.svg_extra_style,
+                )
+                if "footer_text" in draw_cfg.model_fields:
+                    cfgs["footer_text"] = st.text_input(
+                        "`footer_text`",
+                        help="Footer text that will be inserted at the bottom of the drawing",
+                        value=draw_cfg.footer_text,
+                    )
+
+                common_config_button = st.form_submit_button("Update config")
+                if common_config_button:
+                    cfg.draw_config = draw_cfg.copy(update=cfgs)
+                    state.kd_config = dump_config(cfg)
+                    need_rerun = True
+
+        with raw_col:
+            st.markdown("#### Raw configuration")
+            st.text_area(
+                label=f"[Config parameters](https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md)",
+                key="kd_config",
+                height=700,
+            )
+            st.download_button(label="Download config", data=state.kd_config, file_name="my_config.yaml")
+
+    state.user_query = False
+    if need_rerun:  # rerun if keymap editor needs to be explicitly refreshed or config updates need to be propagated
+        st.rerun()
+
+
+main()
