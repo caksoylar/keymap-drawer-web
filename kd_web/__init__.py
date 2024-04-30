@@ -243,7 +243,7 @@ def keymap_draw_row(need_rerun: bool):
                         draw_cfg = draw_cfg.copy(
                             update={"svg_extra_style": draw_cfg.svg_extra_style + f"\nsvg.keymap {{ background-color: {bg_color}; }}"}
                         )
-                        export_svg = draw(keymap_data, draw_cfg)
+                        export_svg = draw(keymap_data, draw_cfg, **draw_opts)
                     else:
                         export_svg = svg
                     st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg")
