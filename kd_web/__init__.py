@@ -226,7 +226,7 @@ def keymap_draw_row(need_rerun: bool):
 
             draw_opts: dict[str, Any] = {}
 
-            header_col, opts_col = st.columns([0.7, 0.3])
+            header_col, opts_col = st.columns([0.8, 0.2])
             with header_col:
                 st.subheader(
                     "Keymap visualization",
