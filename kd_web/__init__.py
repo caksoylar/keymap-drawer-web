@@ -394,12 +394,14 @@ def configuration_row(need_rerun: bool):
                     need_rerun = True
 
         with raw_col:
-            st.markdown("#### Raw configuration")
-            st.text_area(
-                label=f"[Config parameters](https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md)",
-                key="kd_config",
-                height=700,
+            c1, c2 = st.columns([0.8, 0.2])
+            c1.markdown("#### Raw configuration")
+            c2.link_button(
+                label="Config params :link:",
+                url="https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md",
+                use_container_width=True,
             )
+            st.text_area(label="Raw config", key="kd_config", height=700, label_visibility="collapsed")
             st.download_button(label="Download config", data=state.kd_config, file_name="my_config.yaml")
     return need_rerun
 
