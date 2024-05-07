@@ -191,11 +191,16 @@ def keymap_draw_row(need_rerun: bool):
     """Show the main row with keymap YAML and visualization columns."""
     keymap_col, draw_col = st.columns(2)
     with keymap_col:
-        st.subheader(
+        c1, c2 = st.columns([0.8, 0.2])
+        c1.subheader(
             "Keymap YAML",
             help='This is a representation of your keymap to be visualized. Edit below (following the linked keymap spec) and press "Run" (or press Ctrl+Enter) to update the visualization!',
         )
-        st.caption("[Keymap Spec](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md)")
+        c2.link_button(
+            label="Keymap Spec :link:",
+            url="https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md",
+            use_container_width=True,
+        )
         response_dict = code_editor(
             code=state.keymap_yaml,
             lang="yaml",
