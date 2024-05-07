@@ -63,12 +63,10 @@ EDITOR_BUTTONS = [
 def setup_page():
     """Set page config and style, show header row, set up initial state."""
     st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
-    st.write(
-        '<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>', unsafe_allow_html=True
-    )
+    st.html('<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>')
 
     c1, c2 = st.columns(2)
-    c1.write(f'<h1 align="center">{get_logo()}</h1>', unsafe_allow_html=True)
+    c1.html(f'<h1 align="center">{get_logo()}</h1>')
     c2.subheader("A visualizer for keyboard keymaps")
     c2.caption(
         "Check out the documentation and Python CLI tool in the "
