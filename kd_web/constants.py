@@ -4,7 +4,6 @@ from importlib.metadata import version
 
 APP_URL = "https://caksoylar.github.io/keymap-drawer"
 REPO_REF = f"v{version('keymap_drawer')}"
-FOOTER = 'Created with <a href="https://github.com/caksoylar/keymap-drawer">keymap-drawer</a>'
 
 DRAW_TIMEOUT = 10
 PARSE_TIMEOUT = 30

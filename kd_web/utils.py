@@ -20,7 +20,7 @@ from keymap_drawer.config import Config, ParseConfig
 import streamlit as st
 
 from .kd_interface import parse_zmk_to_yaml
-from .constants import APP_URL, REPO_REF, FOOTER
+from .constants import APP_URL, REPO_REF
 
 
 @st.cache_data
@@ -66,6 +66,7 @@ def get_example_yamls() -> dict[str, str]:
 
 def dump_config(cfg: Config) -> str:
     """Convert config to yaml representation."""
+
     def cfg_str_representer(dumper, in_str):
         if "\n" in in_str:  # use '|' style for multiline strings
             return dumper.represent_scalar("tag:yaml.org,2002:str", in_str, style="|")
@@ -78,8 +79,10 @@ def dump_config(cfg: Config) -> str:
 @st.cache_data
 def get_default_config() -> str:
     """Get and dump default config."""
+    with open(Path(__file__).parent.parent / "resources" / "default_config.yaml", encoding="utf-8") as f:
+        config_dict = yaml.safe_load(f)
 
-    return dump_config(Config(draw_config={"footer_text": FOOTER, "dark_mode": "auto"}))
+    return dump_config(Config(**config_dict))
 
 
 def _get_zmk_ref(owner: str, repo: str, head: str) -> str:
