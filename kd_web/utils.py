@@ -23,6 +23,15 @@ from .kd_interface import parse_zmk_to_yaml
 from .constants import APP_URL, REPO_REF, FOOTER
 
 
+@st.cache_data
+def get_logo() -> str:
+    """Read logo file and return it as a base64 encoded img element."""
+    with open(Path(__file__).parent.parent / "resources" / "logo.svg", "rb") as f:
+        logo_data = f.read()
+    b64 = base64.b64encode(logo_data).decode("utf-8")
+    return f'<img src="data:image/svg+xml;base64,{b64}"/>'
+
+
 @st.cache_data(max_entries=16)
 def svg_to_png(svg_string: str, background_color: str) -> bytes:
     """
@@ -43,7 +52,7 @@ def svg_to_png(svg_string: str, background_color: str) -> bytes:
     return svg2png(bytestring=input_svg.encode("utf-8"), background_color=background_color)
 
 
-@st.cache_resource
+@st.cache_data
 def get_example_yamls() -> dict[str, str]:
     """Return mapping of example keymap YAML names to contents."""
     repo_zip = _download_zip("caksoylar", "keymap-drawer", REPO_REF)

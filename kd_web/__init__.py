@@ -16,6 +16,7 @@ from .utils import (
     decode_permalink_param,
     get_default_config,
     get_example_yamls,
+    get_logo,
     get_permalink,
     parse_zmk_url_to_yaml,
     svg_to_png,
@@ -67,7 +68,7 @@ def setup_page():
     )
 
     c1, c2 = st.columns(2)
-    c1.image("logo.svg")
+    c1.write(f'<h1 align="center">{get_logo()}</h1>', unsafe_allow_html=True)
     c2.subheader("A visualizer for keyboard keymaps")
     c2.caption(
         "Check out the documentation and Python CLI tool in the "
