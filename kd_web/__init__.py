@@ -97,6 +97,10 @@ def setup_page():
 
 def examples_parse_row(examples):
     """Show column with examples and parsing boxes, in order to set up initial keymap."""
+    st.subheader(
+        "Quick start",
+        help="Use one of the options below to generate an initial keymap YAML that you can start editing.",
+    )
     col_ex, col_qmk, col_zmk = st.columns(3)
     error_placeholder = st.empty()
     with col_ex:
@@ -181,11 +185,15 @@ def examples_parse_row(examples):
 
                 st.caption("Please check and if necessary correct the `layout` field after parsing")
 
+
 def keymap_draw_row(need_rerun: bool):
     """Show the main row with keymap YAML and visualization columns."""
     keymap_col, draw_col = st.columns(2)
     with keymap_col:
-        st.subheader("Keymap YAML")
+        st.subheader(
+            "Keymap YAML",
+            help='This is a representation of your keymap to be visualized. Edit below (following the linked keymap spec) and press "Run" (or press Ctrl+Enter) to update the visualization!',
+        )
         st.caption("[Keymap Spec](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md)")
         response_dict = code_editor(
             code=state.keymap_yaml,
@@ -216,15 +224,26 @@ def keymap_draw_row(need_rerun: bool):
 
             header_col, opts_col = st.columns([0.7, 0.3])
             with header_col:
-                st.subheader("Keymap visualization")
+                st.subheader(
+                    "Keymap visualization",
+                    help="This is the visualization of your keymap YAML from the left column, "
+                    'using the settings in the "Configuration" dialog. '
+                    'Iterate on the YAML until you are happy with it, then use the "Export" dialog below.',
+                )
             with opts_col:
                 with st.popover("Draw filters", use_container_width=True):
-                    draw_opts["draw_layers"] = st.multiselect("Layers to show", options=layer_names, default=layer_names)
+                    draw_opts["draw_layers"] = st.multiselect(
+                        "Layers to show", options=layer_names, default=layer_names
+                    )
                     draw_opts["keys_only"] = st.checkbox("Show only keys")
                     draw_opts["combos_only"] = st.checkbox("Show only combos")
                     try:
                         draw_opts["ghost_keys"] = [
-                            int(v) for v in st.text_input("`ghost` keys", help="Space-separated zero-based key position indices to add `type: ghost`").split()
+                            int(v)
+                            for v in st.text_input(
+                                "`ghost` keys",
+                                help="Space-separated zero-based key position indices to add `type: ghost`",
+                            ).split()
                         ]
                     except ValueError as err:
                         handle_exception(st, "Values must be space-separated integers", err)
@@ -241,7 +260,10 @@ def keymap_draw_row(need_rerun: bool):
                     bg_color = st.color_picker("SVG background color", disabled=not bg_override)
                     if bg_override:
                         draw_cfg = draw_cfg.copy(
-                            update={"svg_extra_style": draw_cfg.svg_extra_style + f"\nsvg.keymap {{ background-color: {bg_color}; }}"}
+                            update={
+                                "svg_extra_style": draw_cfg.svg_extra_style
+                                + f"\nsvg.keymap {{ background-color: {bg_color}; }}"
+                            }
                         )
                         export_svg = draw(keymap_data, draw_cfg, **draw_opts)
                     else:
@@ -255,9 +277,7 @@ def keymap_draw_row(need_rerun: bool):
                         "uses a fixed text font and does not support auto dark mode"
                     )
                     bg_color = st.color_picker("PNG background color")
-                    st.download_button(
-                        label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png"
-                    )
+                    st.download_button(label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png")
 
         except yaml.YAMLError as err:
             handle_exception(st, "Could not parse keymap YAML, please check for syntax errors", err)
