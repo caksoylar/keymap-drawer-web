@@ -32,6 +32,13 @@ def get_logo() -> str:
     return f'<img src="data:image/svg+xml;base64,{b64}"/>'
 
 
+@st.cache_data
+def get_about() -> str:
+    """Read about text and return it as a string."""
+    with open(Path(__file__).parent.parent / "resources" / "about.md", "r", encoding="utf-8") as f:
+        return f.read()
+
+
 @st.cache_data(max_entries=16)
 def svg_to_png(svg_string: str, background_color: str) -> bytes:
     """

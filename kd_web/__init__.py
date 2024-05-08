@@ -14,6 +14,7 @@ from .utils import (
     dump_config,
     handle_exception,
     decode_permalink_param,
+    get_about,
     get_default_config,
     get_example_yamls,
     get_logo,
@@ -60,6 +61,14 @@ EDITOR_BUTTONS = [
 ]
 
 
+@st.experimental_dialog("About this tool", width="large")
+def display_about():
+    """Display a dialog about the app."""
+    st.write(get_about())
+    if st.button("Close"):
+        st.rerun()
+
+
 def setup_page():
     """Set page config and style, show header row, set up initial state."""
     st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
@@ -73,6 +82,8 @@ def setup_page():
         "[GitHub repo](https://github.com/caksoylar/keymap-drawer)!"
     )
     c2.caption(f"`keymap-drawer` version: [{REPO_REF}](https://github.com/caksoylar/keymap-drawer/tree/{REPO_REF})")
+    if c2.button("What is this tool?"):
+        display_about()
 
     examples = get_example_yamls()
     if "kd_config" not in state:
