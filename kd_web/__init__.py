@@ -207,7 +207,7 @@ def keymap_draw_row(need_rerun: bool):
         )
         c2.link_button(
             label="Keymap Spec :link:",
-            url="https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md",
+            url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/KEYMAP_SPEC.md",
             use_container_width=True,
         )
         response_dict = code_editor(
@@ -409,7 +409,7 @@ def configuration_row(need_rerun: bool):
             c1.markdown("#### Raw configuration")
             c2.link_button(
                 label="Config params :link:",
-                url="https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md",
+                url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md",
                 use_container_width=True,
             )
             st.text_area(label="Raw config", key="kd_config", height=700, label_visibility="collapsed")
