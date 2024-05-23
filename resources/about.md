@@ -27,3 +27,7 @@ yourself, or you can share it with others.
 
 This app uses the `keymap-drawer` Python library under the hood.
 It also provides a CLI that you can use, check out the [Github repo](https://github.com/caksoylar/keymap-drawer) for instructions on how to install and use it!
+
+## Questions? Feedback?
+
+If you have any questions on usage or feedback for new or existing features, please check out the [GitHub Discussions page](https://github.com/caksoylar/keymap-drawer/discussions) and feel free to create a new one!
