@@ -45,7 +45,7 @@ EDITOR_BUTTONS = [
         "class": "shortcuts-button",
         "hasText": True,
         "commands": ["toggleKeyboardShortcuts"],
-        "style": {"top": "2.0rem", "right": "0.4rem"},
+        "style": {"top": "10.0rem", "right": "0.4rem"},
     },
     {
         "name": "Run",
