@@ -24,15 +24,6 @@ from .constants import APP_URL, REPO_REF
 
 
 @st.cache_data
-def get_logo() -> str:
-    """Read logo file and return it as a base64 encoded img element."""
-    with open(Path(__file__).parent.parent / "resources" / "logo.svg", "rb") as f:
-        logo_data = f.read()
-    b64 = base64.b64encode(logo_data).decode("utf-8")
-    return f'<img src="data:image/svg+xml;base64,{b64}"/>'
-
-
-@st.cache_data
 def get_about() -> str:
     """Read about text and return it as a string."""
     with open(Path(__file__).parent.parent / "resources" / "about.md", "r", encoding="utf-8") as f:

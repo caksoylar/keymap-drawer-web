@@ -17,7 +17,6 @@ from .utils import (
     get_about,
     get_default_config,
     get_example_yamls,
-    get_logo,
     get_permalink,
     parse_zmk_url_to_yaml,
     svg_to_png,
@@ -75,7 +74,9 @@ def setup_page():
     st.html('<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>')
 
     c1, c2 = st.columns(2)
-    c1.html(f'<h1 align="center">{get_logo()}</h1>')
+    c1.html(
+        '<h1 align="center"><img alt="keymap-drawer logo" src="https://caksoylar.github.io/keymap-drawer/logo.svg"></h1>'
+    )
     c2.subheader("A visualizer for keyboard keymaps")
     c2.caption(
         "Check out the documentation and Python CLI tool in the "
