@@ -27,7 +27,7 @@ def read_keymap_yaml(yaml_str: str) -> dict:
 
 
 @timeout_decorator.timeout(DRAW_TIMEOUT, use_signals=False)
-def draw(keymap_data: dict, config: DrawConfig, **draw_args) -> str:
+def draw(keymap_data: dict, config: DrawConfig, layout_override: dict | None = None, **draw_args) -> str:
     """Given a YAML keymap string, draw the keymap in SVG format to a string."""
 
     if custom_config := keymap_data.get("draw_config"):
@@ -38,7 +38,7 @@ def draw(keymap_data: dict, config: DrawConfig, **draw_args) -> str:
             config=config,
             out=out,
             layers=keymap_data["layers"],
-            layout=keymap_data["layout"],
+            layout=layout_override if layout_override is not None else keymap_data["layout"],
             combos=keymap_data.get("combos", []),
         )
         drawer.print_board(**draw_args)

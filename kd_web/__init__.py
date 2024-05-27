@@ -238,7 +238,7 @@ def keymap_draw_row(need_rerun: bool):
 
             draw_opts: dict[str, Any] = {}
 
-            header_col, opts_col = st.columns([0.8, 0.2])
+            header_col, layout_col, opts_col = st.columns([0.55, 0.25, 0.2])
             with header_col:
                 st.subheader(
                     "Keymap visualization",
@@ -246,6 +246,14 @@ def keymap_draw_row(need_rerun: bool):
                     'using the settings in the "Configuration" dialog. '
                     'Iterate on the YAML until you are happy with it, then use the "Export" dialog below.',
                 )
+            with layout_col:
+                with st.popover("Layout override", use_container_width=True):
+                    st.write(
+                        "You can override the physical layout spec description in Keymap YAML with a custom layout "
+                        "description file here, similar to `qmk_info_json` option mentioned in the [docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification)."
+                    )
+                    st.caption("Note: If there are multiple layouts under the `layouts` field, the first one will be used.")
+                    qmk_layout_file = st.file_uploader(label="QMK `info.json`-format layout description", type=["json"])
             with opts_col:
                 with st.popover("Draw filters", use_container_width=True):
                     draw_opts["draw_layers"] = st.multiselect(
@@ -264,7 +272,9 @@ def keymap_draw_row(need_rerun: bool):
                     except ValueError as err:
                         handle_exception(st, "Values must be space-separated integers", err)
 
-            svg = draw(keymap_data, draw_cfg, **draw_opts)
+            layout_override = {"qmk_info_json": qmk_layout_file} if qmk_layout_file is not None else None
+
+            svg = draw(keymap_data, draw_cfg, layout_override, **draw_opts)
 
             st.image(svg)
 
@@ -281,7 +291,7 @@ def keymap_draw_row(need_rerun: bool):
                                 + f"\nsvg.keymap {{ background-color: {bg_color}; }}"
                             }
                         )
-                        export_svg = draw(keymap_data, draw_cfg, **draw_opts)
+                        export_svg = draw(keymap_data, draw_cfg, layout_override, **draw_opts)
                     else:
                         export_svg = svg
                     st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg")
