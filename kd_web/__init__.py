@@ -82,7 +82,7 @@ def setup_page():
         "Check out the documentation and Python CLI tool in the "
         "[GitHub repo](https://github.com/caksoylar/keymap-drawer)!"
     )
-    c2.caption(f"`keymap-drawer` version: [{REPO_REF}](https://github.com/caksoylar/keymap-drawer/tree/{REPO_REF})")
+    c2.caption(f"`keymap-drawer` version: [{REPO_REF}](https://github.com/caksoylar/keymap-drawer/releases/tag/{REPO_REF})")
     if c2.button("What is this tool?"):
         display_about()
 
