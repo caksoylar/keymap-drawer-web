@@ -77,7 +77,7 @@ def setup_page():
     c1.html(
         '<h1 align="center"><img alt="keymap-drawer logo" src="https://caksoylar.github.io/keymap-drawer/logo.svg"></h1>'
     )
-    c2.subheader("A visualizer for keyboard keymaps")
+    c2.subheader("A visualizer for keyboard keymaps", anchor=False)
     c2.caption(
         "Check out the documentation and Python CLI tool in the "
         "[GitHub repo](https://github.com/caksoylar/keymap-drawer)!"
@@ -111,6 +111,7 @@ def examples_parse_row(examples):
     st.subheader(
         "Quick start",
         help="Use one of the options below to generate an initial keymap YAML that you can start editing.",
+        anchor=False,
     )
     col_ex, col_qmk, col_zmk = st.columns(3)
     error_placeholder = st.empty()
@@ -205,6 +206,7 @@ def keymap_draw_row(need_rerun: bool):
         c1.subheader(
             "Keymap YAML",
             help='This is a representation of your keymap to be visualized. Edit below (following the linked keymap spec) and press "Run" (or press Ctrl+Enter) to update the visualization!',
+            anchor=False,
         )
         c2.link_button(
             label="Keymap Spec :link:",
@@ -245,14 +247,18 @@ def keymap_draw_row(need_rerun: bool):
                     help="This is the visualization of your keymap YAML from the left column, "
                     'using the settings in the "Configuration" dialog. '
                     'Iterate on the YAML until you are happy with it, then use the "Export" dialog below.',
+                    anchor=False,
                 )
             with layout_col:
                 with st.popover("Layout override", use_container_width=True):
                     st.write(
                         "You can override the physical layout spec description in Keymap YAML with a custom layout "
-                        "description file here, similar to `qmk_info_json` option mentioned in the [docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification)."
+                        "description file here, similar to `qmk_info_json` option mentioned in the "
+                        "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification)."
                     )
-                    st.caption("Note: If there are multiple layouts under the `layouts` field, the first one will be used.")
+                    st.caption(
+                        "Note: If there are multiple layouts under the `layouts` field, the first one will be used."
+                    )
                     qmk_layout_file = st.file_uploader(label="QMK `info.json`-format layout description", type=["json"])
             with opts_col:
                 with st.popover("Draw filters", use_container_width=True):
@@ -281,7 +287,7 @@ def keymap_draw_row(need_rerun: bool):
             with st.expander("Export"):
                 svg_col, png_col = st.columns(2)
                 with svg_col:
-                    st.subheader("SVG")
+                    st.subheader("SVG", anchor=False)
                     bg_override = st.checkbox("Override background", value=False)
                     bg_color = st.color_picker("SVG background color", disabled=not bg_override)
                     if bg_override:
@@ -297,7 +303,7 @@ def keymap_draw_row(need_rerun: bool):
                     st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg")
 
                 with png_col:
-                    st.subheader("PNG")
+                    st.subheader("PNG", anchor=False)
                     st.caption(
                         "Note: Export might not render emojis and unicode characters as well as your browser, "
                         "uses a fixed text font and does not support auto dark mode"
@@ -317,7 +323,7 @@ def configuration_row(need_rerun: bool):
     with st.expander("Configuration", expanded=True):
         common_col, raw_col = st.columns(2)
         with common_col:
-            st.markdown("#### Common configuration options")
+            st.subheader("Common configuration options", anchor=False)
             try:
                 cfg = parse_config(state.kd_config)
             except Exception:
@@ -417,7 +423,7 @@ def configuration_row(need_rerun: bool):
 
         with raw_col:
             c1, c2 = st.columns([0.8, 0.2])
-            c1.markdown("#### Raw configuration")
+            c1.subheader("Raw configuration", anchor=False)
             c2.link_button(
                 label="Config params :link:",
                 url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md",
