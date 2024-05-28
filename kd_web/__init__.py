@@ -221,8 +221,9 @@ def keymap_draw_row(need_rerun: bool):
             buttons=EDITOR_BUTTONS,
             key="keymap_editor",
             options={"wrap": True, "tabSize": 2},
+            response_mode=["default", "blur"],
         )
-        if response_dict["type"] == "submit" and response_dict["id"] != state.code_id:
+        if response_dict["type"] in ("submit", "blur") and response_dict["id"] != state.code_id:
             state.keymap_yaml = response_dict["text"]
             state.code_id = response_dict["id"]
             need_rerun = True
