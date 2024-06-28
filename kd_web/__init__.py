@@ -73,7 +73,7 @@ def setup_page():
     st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
     st.html('<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>')
 
-    c1, c2 = st.columns(2)
+    c1, c2 = st.columns(2, vertical_alignment="center")
     c1.html(
         '<h1 align="center"><img alt="keymap-drawer logo" src="https://caksoylar.github.io/keymap-drawer/logo.svg"></h1>'
     )
@@ -82,7 +82,9 @@ def setup_page():
         "Check out the documentation and Python CLI tool in the "
         "[GitHub repo](https://github.com/caksoylar/keymap-drawer)!"
     )
-    c2.caption(f"`keymap-drawer` version: [{REPO_REF}](https://github.com/caksoylar/keymap-drawer/releases/tag/{REPO_REF})")
+    c2.caption(
+        f"`keymap-drawer` version: [{REPO_REF}](https://github.com/caksoylar/keymap-drawer/releases/tag/{REPO_REF})"
+    )
     if c2.button("What is this tool?"):
         display_about()
 
@@ -202,7 +204,7 @@ def keymap_draw_row(need_rerun: bool):
     """Show the main row with keymap YAML and visualization columns."""
     keymap_col, draw_col = st.columns(2)
     with keymap_col:
-        c1, c2 = st.columns([0.8, 0.2])
+        c1, c2 = st.columns([0.8, 0.2], vertical_alignment="bottom")
         c1.subheader(
             "Keymap YAML",
             help='This is a representation of your keymap to be visualized. Edit below (following the linked keymap spec) and press "Run" (or press Ctrl+Enter) to update the visualization!',
@@ -241,7 +243,7 @@ def keymap_draw_row(need_rerun: bool):
 
             draw_opts: dict[str, Any] = {}
 
-            header_col, layout_col, opts_col = st.columns([0.55, 0.25, 0.2])
+            header_col, layout_col, opts_col = st.columns([0.55, 0.25, 0.2], vertical_alignment="bottom")
             with header_col:
                 st.subheader(
                     "Keymap visualization",
@@ -285,7 +287,7 @@ def keymap_draw_row(need_rerun: bool):
 
             st.image(svg)
 
-            with st.expander("Export"):
+            with st.expander("Export", icon=":material/ios_share:"):
                 svg_col, png_col = st.columns(2)
                 with svg_col:
                     st.subheader("SVG", anchor=False)
@@ -321,7 +323,7 @@ def keymap_draw_row(need_rerun: bool):
 
 def configuration_row(need_rerun: bool):
     """Show configuration row with common and raw configuration columns."""
-    with st.expander("Configuration", expanded=True):
+    with st.expander("Configuration", expanded=True, icon=":material/manufacturing:"):
         common_col, raw_col = st.columns(2)
         with common_col:
             st.subheader("Common configuration options", anchor=False)
@@ -377,10 +379,14 @@ def configuration_row(need_rerun: bool):
                     max_value=99,
                     value=draw_cfg.n_columns,
                 )
+                c1, c2 = st.columns(2, vertical_alignment="bottom")
+                cfgs["draw_key_sides"] = c1.toggle(
+                    "`draw_key_sides`", help="Draw key sides, like keycaps", value=draw_cfg.draw_key_sides
+                )
                 if "dark_mode" in draw_cfg.model_fields:
                     dark_mode_options = {"Auto": "auto", "Off": False, "On": True}
                     cfgs["dark_mode"] = dark_mode_options[
-                        st.radio(
+                        c2.radio(
                             "`dark_mode`",
                             options=list(dark_mode_options),
                             help='Turn on dark mode, "auto" adapts it to the web page or OS light/dark setting',
@@ -388,7 +394,7 @@ def configuration_row(need_rerun: bool):
                             index=list(dark_mode_options.values()).index(draw_cfg.dark_mode),
                         )
                     ]
-                c1, c2 = st.columns(2)
+                c1, c2 = st.columns(2, vertical_alignment="bottom")
                 with c1:
                     cfgs["separate_combo_diagrams"] = st.toggle(
                         "`separate_combo_diagrams`",
@@ -401,9 +407,6 @@ def configuration_row(need_rerun: bool):
                         help="Scale factor for mini combo diagrams if `separate_combo_diagrams` is set",
                         value=draw_cfg.combo_diagrams_scale,
                     )
-                cfgs["draw_key_sides"] = st.toggle(
-                    "`draw_key_sides`", help="Draw key sides, like keycaps", value=draw_cfg.draw_key_sides
-                )
                 cfgs["svg_extra_style"] = st.text_area(
                     "`svg_extra_style`",
                     help="Extra CSS that will be appended to the default `svg_style`",
