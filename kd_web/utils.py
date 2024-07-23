@@ -15,6 +15,7 @@ from urllib.request import urlopen
 
 import yaml
 from cairosvg import svg2png  # type: ignore
+from lxml import etree  # type: ignore
 from keymap_drawer.config import Config, ParseConfig
 
 import streamlit as st
@@ -41,13 +42,19 @@ def svg_to_png(svg_string: str, background_color: str) -> bytes:
     # force text font to DejaVu Sans Mono, since cairosvg does not properly use font-family attribute
     input_svg = input_svg.replace("font-family: ", "font-family: DejaVu Sans Mono,")
 
+    root = etree.XML(input_svg)
+
     # remove relative font size specifiers since cairosvg can't handle them
-    input_svg = re.sub(r'style="font-size: \d+(\.\d+)?%"', "", input_svg)
+    for node in root.xpath(
+        r"//*[re:match(@style, 'font-size: \d+(\.\d+)?%')]", namespaces={"re": "http://exslt.org/regular-expressions"}
+    ):
+        del node.attrib["style"]
 
     # remove links, e.g. from the footer text
-    input_svg = re.sub(r"<a .*?>|</a>", "", input_svg)
+    if text_nodes := root.xpath('/*[name()="svg"]/*[name()="text"]'):
+        etree.strip_tags(text_nodes[-1], "{http://www.w3.org/2000/svg}a")
 
-    return svg2png(bytestring=input_svg.encode("utf-8"), background_color=background_color)
+    return svg2png(bytestring=etree.tostring(root, encoding="utf-8"), background_color=background_color)
 
 
 @st.cache_data

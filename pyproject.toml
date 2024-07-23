@@ -2,6 +2,9 @@
 good-names = "x,y,w,h,r,f,k,v,p,m,c"
 max-line-length = 120
 
+[tool.pylint.main]
+extension-pkg-allow-list = "lxml"
+
 [tool.pylint."messages control"]
 disable = ["too-few-public-methods", "line-too-long"]
 

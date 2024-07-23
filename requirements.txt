@@ -6,3 +6,4 @@ streamlit==1.36.0
 streamlit-code-editor==0.1.14
 cairosvg>=2.7.0,<3
 timeout-decorator
+lxml
