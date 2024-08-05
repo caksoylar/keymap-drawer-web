@@ -263,7 +263,9 @@ def keymap_draw_row(need_rerun: bool):
                     st.caption(
                         "Note: If there are multiple layouts under the `layouts` field, the first one will be used."
                     )
-                    st.file_uploader(label="QMK `info.json`-format layout description", type=["json"], key="qmk_layout_file")
+                    st.file_uploader(
+                        label="QMK `info.json`-format layout description", type=["json"], key="qmk_layout_file"
+                    )
             with opts_col:
                 with st.popover("Draw filters", use_container_width=True):
                     draw_opts["draw_layers"] = st.multiselect(
@@ -282,7 +284,9 @@ def keymap_draw_row(need_rerun: bool):
                     except ValueError as err:
                         handle_exception(st, "Values must be space-separated integers", err)
 
-            layout_override = {"qmk_info_json": state.qmk_layout_file} if state.get("qmk_layout_file") is not None else None
+            layout_override = (
+                {"qmk_info_json": state.qmk_layout_file} if state.get("qmk_layout_file") is not None else None
+            )
 
             svg = draw(keymap_data, draw_cfg, layout_override, **draw_opts)
 
@@ -393,7 +397,7 @@ def configuration_row(need_rerun: bool):
                             help='Turn on dark mode, "auto" adapts it to the web page or OS light/dark setting',
                             horizontal=True,
                             index=list(dark_mode_options.values()).index(draw_cfg.dark_mode),
-                        )
+                        )  # type: ignore
                     ]
                 c1, c2 = st.columns(2, vertical_alignment="bottom")
                 with c1:

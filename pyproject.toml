@@ -6,7 +6,7 @@ max-line-length = 120
 extension-pkg-allow-list = "lxml"
 
 [tool.pylint."messages control"]
-disable = ["too-few-public-methods", "line-too-long"]
+disable = ["too-few-public-methods", "line-too-long", "broad-exception-caught"]
 
 [tool.mypy]
 plugins = "pydantic.mypy"
