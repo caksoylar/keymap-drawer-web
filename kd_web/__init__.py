@@ -293,7 +293,7 @@ def keymap_draw_row(need_rerun: bool):
                 with svg_col:
                     st.subheader("SVG", anchor=False)
                     bg_override = st.checkbox("Override background", value=False)
-                    bg_color = st.color_picker("SVG background color", disabled=not bg_override)
+                    bg_color = st.color_picker("SVG background color", disabled=not bg_override, value="#FFF")
                     if bg_override:
                         draw_cfg = draw_cfg.copy(
                             update={
@@ -312,7 +312,7 @@ def keymap_draw_row(need_rerun: bool):
                         "Note: Export might not render emojis and unicode characters as well as your browser, "
                         "uses a fixed text font and does not support auto dark mode"
                     )
-                    bg_color = st.color_picker("PNG background color")
+                    bg_color = st.color_picker("PNG background color", value="#FFF")
                     st.download_button(label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png")
 
         except yaml.YAMLError as err:
