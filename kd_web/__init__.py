@@ -55,12 +55,12 @@ EDITOR_BUTTONS = [
         "alwaysOn": True,
         "showWithIcon": True,
         "commands": ["submit"],
-        "style": {"bottom": "0.44rem", "right": "0.4rem"},
+        "style": {"bottom": "0.44rem", "right": "0.4rem", "background-color": "#80808050"},
     },
 ]
 
 
-@st.experimental_dialog("About this tool", width="large")
+@st.dialog("About this tool", width="large")
 def display_about():
     """Display a dialog about the app."""
     st.write(get_about())
@@ -73,7 +73,7 @@ def setup_page():
     st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
     st.html('<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>')
 
-    c1, c2 = st.columns(2, vertical_alignment="center")
+    c1, c2 = st.columns(2, vertical_alignment="center", gap="medium")
     c1.html(
         '<h1 align="center"><img alt="keymap-drawer logo" src="https://caksoylar.github.io/keymap-drawer/logo.svg"></h1>'
     )
@@ -115,7 +115,7 @@ def examples_parse_row(examples):
         help="Use one of the options below to generate an initial keymap YAML that you can start editing.",
         anchor=False,
     )
-    col_ex, col_qmk, col_zmk = st.columns(3)
+    col_ex, col_qmk, col_zmk = st.columns(3, gap="medium")
     error_placeholder = st.empty()
     with col_ex:
         with st.popover("Example keymaps", use_container_width=True):
@@ -202,16 +202,19 @@ def examples_parse_row(examples):
 
 def keymap_draw_row(need_rerun: bool):
     """Show the main row with keymap YAML and visualization columns."""
-    keymap_col, draw_col = st.columns(2)
+    keymap_col, draw_col = st.columns(2, gap="medium")
     with keymap_col:
-        c1, c2 = st.columns([0.8, 0.2], vertical_alignment="bottom")
+        c1, c2 = st.columns([0.75, 0.25], vertical_alignment="bottom")
         c1.subheader(
             "Keymap YAML",
-            help='This is a representation of your keymap to be visualized. Edit below (following the linked keymap spec) and press "Run" (or press Ctrl+Enter) to update the visualization!',
+            help=(
+                "This is a representation of your keymap to be visualized. Edit below (following the linked keymap "
+                'spec) and press "Run" (or press Ctrl+Enter) to update the visualization!'
+            ),
             anchor=False,
         )
         c2.link_button(
-            label="Keymap Spec :link:",
+            label="Keymap Spec :material/open_in_new:",
             url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/KEYMAP_SPEC.md",
             use_container_width=True,
         )
@@ -269,8 +272,8 @@ def keymap_draw_row(need_rerun: bool):
                     )
             with opts_col:
                 with st.popover("Draw filters", use_container_width=True):
-                    draw_opts["draw_layers"] = st.multiselect(
-                        "Layers to show", options=layer_names, default=layer_names
+                    draw_opts["draw_layers"] = st.segmented_control(
+                        "Layers to show", options=layer_names, selection_mode="multi", default=layer_names
                     )
                     draw_opts["keys_only"] = st.checkbox("Show only keys")
                     draw_opts["combos_only"] = st.checkbox("Show only combos")
@@ -330,7 +333,7 @@ def keymap_draw_row(need_rerun: bool):
 def configuration_row(need_rerun: bool):
     """Show configuration row with common and raw configuration columns."""
     with st.expander("Configuration", expanded=True, icon=":material/manufacturing:"):
-        common_col, raw_col = st.columns(2)
+        common_col, raw_col = st.columns(2, gap="medium")
         with common_col:
             st.subheader("Common configuration options", anchor=False)
             try:
@@ -432,10 +435,10 @@ def configuration_row(need_rerun: bool):
                     need_rerun = True
 
         with raw_col:
-            c1, c2 = st.columns([0.8, 0.2])
+            c1, c2 = st.columns([0.75, 0.25], gap="medium")
             c1.subheader("Raw configuration", anchor=False)
             c2.link_button(
-                label="Config params :link:",
+                label="Config params :material/open_in_new:",
                 url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md",
                 use_container_width=True,
             )
