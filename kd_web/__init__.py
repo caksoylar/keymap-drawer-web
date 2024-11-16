@@ -237,7 +237,8 @@ def keymap_draw_row(need_rerun: bool):
 
     with draw_col:
         try:
-            draw_cfg = parse_config(state.kd_config).draw_config
+            cfg = parse_config(state.kd_config)
+            draw_cfg = cfg.draw_config
             keymap_data = read_keymap_yaml(state.keymap_yaml)
             layer_names = list(keymap_data["layers"])
 
@@ -288,7 +289,7 @@ def keymap_draw_row(need_rerun: bool):
                 {"qmk_info_json": state.qmk_layout_file} if state.get("qmk_layout_file") is not None else None
             )
 
-            svg = draw(keymap_data, draw_cfg, layout_override, **draw_opts)
+            svg = draw(keymap_data, cfg, layout_override, **draw_opts)
 
             st.image(svg)
 
@@ -305,7 +306,7 @@ def keymap_draw_row(need_rerun: bool):
                                 + f"\nsvg.keymap {{ background-color: {bg_color}; }}"
                             }
                         )
-                        export_svg = draw(keymap_data, draw_cfg, layout_override, **draw_opts)
+                        export_svg = draw(keymap_data, cfg, layout_override, **draw_opts)
                     else:
                         export_svg = svg
                     st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg")

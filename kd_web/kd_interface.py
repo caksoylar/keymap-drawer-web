@@ -7,7 +7,7 @@ from pathlib import Path
 import timeout_decorator  # type: ignore
 import yaml
 
-from keymap_drawer.config import Config, DrawConfig, ParseConfig
+from keymap_drawer.config import Config, ParseConfig
 from keymap_drawer.draw import KeymapDrawer
 from keymap_drawer.parse import QmkJsonParser, ZmkKeymapParser
 
@@ -27,11 +27,11 @@ def read_keymap_yaml(yaml_str: str) -> dict:
 
 
 @timeout_decorator.timeout(DRAW_TIMEOUT, use_signals=False)
-def draw(keymap_data: dict, config: DrawConfig, layout_override: dict | None = None, **draw_args) -> str:
+def draw(keymap_data: dict, config: Config, layout_override: dict | None = None, **draw_args) -> str:
     """Given a YAML keymap string, draw the keymap in SVG format to a string."""
 
     if custom_config := keymap_data.get("draw_config"):
-        config = config.copy(update=custom_config)
+        config.draw_config = config.draw_config.model_copy(update=custom_config)
 
     with io.StringIO() as out:
         drawer = KeymapDrawer(
