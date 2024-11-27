@@ -91,6 +91,8 @@ def setup_page():
     examples = get_example_yamls()
     if "kd_config" not in state:
         state.kd_config = get_default_config()
+    if "kd_config_obj" not in state:
+        state.kd_config_obj, _ = parse_config(get_default_config())
     if "keymap_yaml" not in state:
         state.keymap_yaml = examples[list(examples)[0]]
     if "code_id" not in state:
@@ -140,9 +142,11 @@ def examples_parse_row(examples):
                         st.error(icon="❗", body="Please upload a keymap file")
                     else:
                         try:
-                            state.keymap_yaml = parse_qmk_to_yaml(
-                                qmk_file, parse_config(state.kd_config).parse_config, num_cols
+                            state.keymap_yaml, log_out = parse_qmk_to_yaml(
+                                qmk_file, state.kd_config_obj.parse_config, num_cols
                             )
+                            if log_out:
+                                st.warning(log_out)
                         except Exception as err:
                             handle_exception(error_placeholder, "Error while parsing QMK keymap", err)
     with col_zmk:
@@ -158,12 +162,14 @@ def examples_parse_row(examples):
                         st.error(icon="❗", body="Please upload a keymap file")
                     else:
                         try:
-                            state.keymap_yaml = parse_zmk_to_yaml(
+                            state.keymap_yaml, log_out = parse_zmk_to_yaml(
                                 zmk_file,
-                                parse_config(state.kd_config).parse_config,
+                                state.kd_config_obj.parse_config,
                                 num_cols,
                                 st.query_params.get("layout", ""),
                             )
+                            if log_out:
+                                st.warning(log_out)
                         except Exception as err:
                             handle_exception(error_placeholder, "Error while parsing ZMK keymap", err)
 
@@ -181,12 +187,14 @@ def examples_parse_row(examples):
                         st.error(icon="❗", body="Please enter a URL")
                     else:
                         try:
-                            state.keymap_yaml = parse_zmk_url_to_yaml(
+                            state.keymap_yaml, log_out = parse_zmk_url_to_yaml(
                                 state.zmk_url,
-                                parse_config(state.kd_config).parse_config,
+                                state.kd_config_obj.parse_config,
                                 num_cols,
                                 st.query_params.get("layout", ""),
                             )
+                            if log_out:
+                                st.warning(log_out)
                         except HTTPError as err:
                             handle_exception(
                                 error_placeholder,
@@ -265,7 +273,7 @@ def keymap_draw_row(need_rerun: bool):
                         key="qmk_layout_file",
                     )
 
-            cfg = parse_config(state.kd_config)
+            cfg = state.kd_config_obj
             draw_cfg = cfg.draw_config
             keymap_data = read_keymap_yaml(state.keymap_yaml)
             layer_names = list(keymap_data["layers"])
@@ -300,8 +308,10 @@ def keymap_draw_row(need_rerun: bool):
                 "layout" in keymap_data or layout_override is not None
             ), 'Physical layout needs to be specified via the "layout" field in keymap YAML, or via "Layout override"'
 
-            svg = draw(keymap_data, cfg, layout_override, **draw_opts)
+            svg, log = draw(keymap_data, cfg, layout_override, **draw_opts)
 
+            if log:
+                draw_container.warning(log)
             draw_container.image(svg)
 
             with draw_container.expander("Export", icon=":material/ios_share:"):
@@ -345,7 +355,7 @@ def configuration_row(need_rerun: bool):
         with common_col:
             st.subheader("Common configuration options", anchor=False)
             try:
-                cfg = parse_config(state.kd_config)
+                cfg = state.kd_config_obj
             except Exception:
                 cfg = parse_config(get_default_config())
             draw_cfg = cfg.draw_config
@@ -452,6 +462,11 @@ def configuration_row(need_rerun: bool):
             )
             st.text_area(label="Raw config", key="kd_config", height=700, label_visibility="collapsed")
             st.download_button(label="Download config", data=state.kd_config, file_name="my_config.yaml")
+
+        state.kd_config_obj, config_log = parse_config(state.kd_config)
+        if config_log:
+            st.warning(config_log)
+
     return need_rerun
 
 
