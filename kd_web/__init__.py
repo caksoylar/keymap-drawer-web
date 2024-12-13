@@ -261,14 +261,14 @@ def keymap_draw_row(need_rerun: bool):
                 with st.popover(active_icon + "Layout override", use_container_width=True):
                     st.write(
                         "You can override the physical layout spec description in Keymap YAML with a custom layout "
-                        "description file here, similar to `qmk_info_json` option mentioned in the "
-                        "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#qmk-infojson-specification)."
+                        "description file here, similar to `qmk_info_json` or `dts_layout` options mentioned in the "
+                        "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#layout)."
                     )
-                    st.caption(
-                        "Note: If there are multiple layouts under the `layouts` field, the first one will be used."
-                    )
+                    st.caption("Note: If there are multiple layouts in the file, the first one will be used.")
                     st.file_uploader(
-                        label="QMK `info.json`-format layout description", type=["json"], key="qmk_layout_file"
+                        label="QMK `info.json` or ZMK devicetree format layout description",
+                        type=["json", "dtsi", "overlay", "dts"],
+                        key="qmk_layout_file",
                     )
             with opts_col:
                 with st.popover("Draw filters", use_container_width=True):
@@ -288,9 +288,10 @@ def keymap_draw_row(need_rerun: bool):
                     except ValueError as err:
                         handle_exception(st, "Values must be space-separated integers", err)
 
-            layout_override = (
-                {"qmk_info_json": state.qmk_layout_file} if state.get("qmk_layout_file") is not None else None
-            )
+            layout_override = None
+            if override_file := state.get("qmk_layout_file"):
+                override_file.name
+                layout_override = {"qmk_info_json" if override_file.name.endswith(".json") else "dts_layout": state.qmk_layout_file}
 
             svg = draw(keymap_data, cfg, layout_override, **draw_opts)
 
