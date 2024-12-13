@@ -240,14 +240,8 @@ def keymap_draw_row(need_rerun: bool):
 
     with draw_col:
         try:
-            cfg = parse_config(state.kd_config)
-            draw_cfg = cfg.draw_config
-            keymap_data = read_keymap_yaml(state.keymap_yaml)
-            layer_names = list(keymap_data["layers"])
-
-            draw_opts: dict[str, Any] = {}
-
             header_col, layout_col, opts_col = st.columns([0.55, 0.25, 0.2], vertical_alignment="bottom")
+            draw_container = st.container()
             with header_col:
                 st.subheader(
                     "Keymap visualization",
@@ -270,6 +264,14 @@ def keymap_draw_row(need_rerun: bool):
                         type=["json", "dtsi", "overlay", "dts"],
                         key="qmk_layout_file",
                     )
+
+            cfg = parse_config(state.kd_config)
+            draw_cfg = cfg.draw_config
+            keymap_data = read_keymap_yaml(state.keymap_yaml)
+            layer_names = list(keymap_data["layers"])
+
+            draw_opts: dict[str, Any] = {}
+
             with opts_col:
                 with st.popover("Draw filters", use_container_width=True):
                     draw_opts["draw_layers"] = st.segmented_control(
@@ -290,14 +292,19 @@ def keymap_draw_row(need_rerun: bool):
 
             layout_override = None
             if override_file := state.get("qmk_layout_file"):
-                override_file.name
-                layout_override = {"qmk_info_json" if override_file.name.endswith(".json") else "dts_layout": state.qmk_layout_file}
+                layout_override = {
+                    "qmk_info_json" if override_file.name.endswith(".json") else "dts_layout": state.qmk_layout_file
+                }
+
+            assert (
+                "layout" in keymap_data or layout_override is not None
+            ), 'Physical layout needs to be specified via the "layout" field in keymap YAML, or via "Layout override"'
 
             svg = draw(keymap_data, cfg, layout_override, **draw_opts)
 
-            st.image(svg)
+            draw_container.image(svg)
 
-            with st.expander("Export", icon=":material/ios_share:"):
+            with draw_container.expander("Export", icon=":material/ios_share:"):
                 svg_col, png_col = st.columns(2)
                 with svg_col:
                     st.subheader("SVG", anchor=False)
@@ -325,9 +332,9 @@ def keymap_draw_row(need_rerun: bool):
                     st.download_button(label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png")
 
         except yaml.YAMLError as err:
-            handle_exception(st, "Could not parse keymap YAML, please check for syntax errors", err)
+            handle_exception(draw_container, "Could not parse keymap YAML, please check for syntax errors", err)
         except Exception as err:
-            handle_exception(st, "Error while drawing SVG from keymap YAML", err)
+            handle_exception(draw_container, "Error while drawing SVG from keymap YAML", err)
     return need_rerun
 
 

@@ -22,7 +22,6 @@ def read_keymap_yaml(yaml_str: str) -> dict:
     assert yaml_str, "Keymap YAML is empty, nothing to draw"
     yaml_data = yaml.safe_load(yaml_str)
     assert "layers" in yaml_data, 'Keymap needs to be specified via the "layers" field in keymap YAML'
-    assert "layout" in yaml_data, 'Physical layout needs to be specified via the "layout" field in keymap YAML'
     return yaml_data
 
 
