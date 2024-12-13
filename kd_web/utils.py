@@ -45,14 +45,14 @@ def svg_to_png(svg_string: str, background_color: str) -> bytes:
     root = etree.XML(input_svg)
 
     # remove relative font size specifiers since cairosvg can't handle them
-    for node in root.xpath(
+    for node in root.xpath(  # type: ignore
         r"//*[re:match(@style, 'font-size: \d+(\.\d+)?%')]", namespaces={"re": "http://exslt.org/regular-expressions"}
     ):
-        del node.attrib["style"]
+        del node.attrib["style"]  # type: ignore
 
     # remove links, e.g. from the footer text
     if text_nodes := root.xpath('/*[name()="svg"]/*[name()="text"]'):
-        etree.strip_tags(text_nodes[-1], "{http://www.w3.org/2000/svg}a")
+        etree.strip_tags(text_nodes[-1], "{http://www.w3.org/2000/svg}a")  # type: ignore
 
     return svg2png(bytestring=etree.tostring(root, encoding="utf-8"), background_color=background_color)
 
