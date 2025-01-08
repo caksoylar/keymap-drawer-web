@@ -466,7 +466,7 @@ def configuration_row(need_rerun: bool):
                 url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md",
                 use_container_width=True,
             )
-            st.text_area(label="Raw config", key="kd_config", height=700, label_visibility="collapsed")
+            st.text_area(label="Raw config", key="kd_config", height=655, label_visibility="collapsed")
             st.download_button(label="Download config", data=state.kd_config, file_name="my_config.yaml")
 
         state.kd_config_obj, config_log = parse_config(state.kd_config)
