@@ -154,5 +154,6 @@ def decode_permalink_param(param: str) -> str:
 
 def handle_exception(container, message: str, exc: Exception):
     """Display exception in given container."""
-    container.error(icon="❗", body=message)
-    container.exception(exc)
+    exc_str = str(exc).replace("\n", "  \n")
+    body = message + "\n\n" + f"**{type(exc).__name__}**: {exc_str}"
+    container.error(icon="❗", body=body)
