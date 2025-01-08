@@ -68,6 +68,11 @@ def display_about():
         st.rerun()
 
 
+@st.dialog("Keymap permalink", width="large")
+def show_permalink(keymap_yaml: str):
+    st.code(get_permalink(keymap_yaml), language=None, wrap_lines=True)
+
+
 def setup_page():
     """Set page config and style, show header row, set up initial state."""
     st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
@@ -241,10 +246,11 @@ def keymap_draw_row(need_rerun: bool):
             state.code_id = response_dict["id"]
             need_rerun = True
 
-        st.download_button(label="Download keymap", data=state.keymap_yaml, file_name="my_keymap.yaml")
-        permabutton = st.button(label="Get permalink to keymap")
+        c1, c2 = st.columns(2)
+        c1.download_button(label="Download keymap :material/download:", data=state.keymap_yaml, file_name="my_keymap.yaml", use_container_width=True)
+        permabutton = c2.button(label="Get permalink to keymap :material/link:", use_container_width=True)
         if permabutton:
-            st.code(get_permalink(state.keymap_yaml), language=None)
+            show_permalink(state.keymap_yaml)
 
     with draw_col:
         try:
