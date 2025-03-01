@@ -11,7 +11,7 @@ import yaml
 from keymap_drawer import logger
 from keymap_drawer.config import Config, ParseConfig
 from keymap_drawer.draw import KeymapDrawer
-from keymap_drawer.parse import QmkJsonParser, ZmkKeymapParser
+from keymap_drawer.parse import KanataKeymapParser, QmkJsonParser, ZmkKeymapParser
 
 import streamlit as st
 
@@ -62,6 +62,19 @@ def parse_config(config: str) -> tuple[Config, str]:
         cfg = Config.parse_obj(yaml.safe_load(config))
         log_handler.flush()
         return cfg, log_out.getvalue()
+
+
+@timeout_decorator.timeout(PARSE_TIMEOUT, use_signals=False)
+def parse_kanata_to_yaml(kanata_kbd_buf: io.BytesIO, config: ParseConfig, num_cols: int) -> tuple[str, str]:
+    """Parse a given Kanata keymap kbd (buffer) into keymap YAML."""
+    with io.StringIO() as log_out:
+        log_handler.setStream(log_out)
+        parsed = KanataKeymapParser(config, num_cols).parse(io.TextIOWrapper(kanata_kbd_buf, encoding="utf-8"))
+        log_handler.flush()
+        return (
+            yaml.safe_dump(parsed, width=160, sort_keys=False, default_flow_style=None, allow_unicode=True),
+            log_out.getvalue(),
+        )
 
 
 @timeout_decorator.timeout(PARSE_TIMEOUT, use_signals=False)

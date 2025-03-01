@@ -25,6 +25,7 @@ from .kd_interface import (
     read_keymap_yaml,
     draw,
     parse_config,
+    parse_kanata_to_yaml,
     parse_qmk_to_yaml,
     parse_zmk_to_yaml,
 )
@@ -122,7 +123,7 @@ def examples_parse_row(examples):
         help="Use one of the options below to generate an initial keymap YAML that you can start editing.",
         anchor=False,
     )
-    col_ex, col_qmk, col_zmk = st.columns(3, gap="medium")
+    col_ex, col_qmk, col_zmk, col_kbd = st.columns(4, gap="medium")
     error_placeholder = st.empty()
     with col_ex:
         with st.popover("Example keymaps", use_container_width=True):
@@ -211,6 +212,26 @@ def examples_parse_row(examples):
                             handle_exception(error_placeholder, "Error while parsing ZMK keymap from URL", err)
 
                 st.caption("Please check and if necessary correct the `layout` field after parsing")
+    with col_kbd:
+        with st.popover("Parse from Kanata keymap (experimental!)", use_container_width=True):
+            with st.form("kbd_form", border=False):
+                num_cols = st.number_input(
+                    "Number of columns in keymap (optional)", min_value=0, max_value=20, key="kbd_cols"
+                )
+                kbd_file = st.file_uploader(label="Import Kanata `<keymap>.kbd`", type=["kbd"])
+                kbd_submitted = st.form_submit_button(label="Parse!", use_container_width=True)
+                if kbd_submitted:
+                    if not kbd_file:
+                        st.error(icon="❗", body="Please upload a keymap file")
+                    else:
+                        try:
+                            state.keymap_yaml, log_out = parse_kanata_to_yaml(
+                                kbd_file, state.kd_config_obj.parse_config, num_cols
+                            )
+                            if log_out:
+                                st.warning(log_out)
+                        except Exception as err:
+                            handle_exception(error_placeholder, "Error while parsing Kanata keymap", err)
 
 
 def keymap_draw_row(need_rerun: bool):
