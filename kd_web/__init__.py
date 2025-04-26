@@ -71,6 +71,7 @@ def display_about():
 
 @st.dialog("Keymap permalink", width="large")
 def show_permalink(keymap_yaml: str):
+    """Show permalink to keymap YAML string, in a modal dialog."""
     st.code(get_permalink(keymap_yaml), language=None, wrap_lines=True)
 
 
@@ -268,7 +269,7 @@ def keymap_draw_row(need_rerun: bool):
             need_rerun = True
 
         c1, c2 = st.columns(2)
-        c1.download_button(label="Download keymap :material/download:", data=state.keymap_yaml, file_name="my_keymap.yaml", use_container_width=True)
+        c1.download_button(label="Download keymap :material/download:", data=state.keymap_yaml, file_name="my_keymap.yaml", use_container_width=True, on_click="ignore")
         permabutton = c2.button(label="Get permalink to keymap :material/link:", use_container_width=True)
         if permabutton:
             show_permalink(state.keymap_yaml)
@@ -286,8 +287,8 @@ def keymap_draw_row(need_rerun: bool):
                     anchor=False,
                 )
             with layout_col:
-                active_icon = ":warning: " if state.get("qmk_layout_file") else ""
-                with st.popover(active_icon + "Layout override", use_container_width=True):
+                active_icon = " :green-badge[:material/check:]" if state.get("layout_override") else ""
+                with st.popover("Layout override" + active_icon, use_container_width=True):
                     st.write(
                         "You can override the physical layout spec description in Keymap YAML with a custom layout "
                         "description file here, similar to `qmk_info_json` or `dts_layout` options mentioned in the "
@@ -297,7 +298,7 @@ def keymap_draw_row(need_rerun: bool):
                     st.file_uploader(
                         label="QMK `info.json` or ZMK devicetree format layout description",
                         type=["json", "dtsi", "overlay", "dts"],
-                        key="qmk_layout_file",
+                        key="layout_override",
                     )
 
             cfg = state.kd_config_obj
@@ -326,9 +327,9 @@ def keymap_draw_row(need_rerun: bool):
                         handle_exception(st, "Values must be space-separated integers", err)
 
             layout_override = None
-            if override_file := state.get("qmk_layout_file"):
+            if override_file := state.get("layout_override"):
                 layout_override = {
-                    "qmk_info_json" if override_file.name.endswith(".json") else "dts_layout": state.qmk_layout_file
+                    "qmk_info_json" if override_file.name.endswith(".json") else "dts_layout": state.layout_override
                 }
 
             assert (
@@ -357,7 +358,7 @@ def keymap_draw_row(need_rerun: bool):
                         export_svg = draw(keymap_data, cfg, layout_override, **draw_opts)
                     else:
                         export_svg = svg
-                    st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg")
+                    st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg", on_click="ignore")
 
                 with png_col:
                     st.subheader("PNG", anchor=False)
@@ -366,7 +367,7 @@ def keymap_draw_row(need_rerun: bool):
                         "uses a fixed text font and does not support auto dark mode"
                     )
                     bg_color = st.color_picker("PNG background color", value="#FFF")
-                    st.download_button(label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png")
+                    st.download_button(label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png", on_click="ignore")
 
         except yaml.YAMLError as err:
             handle_exception(draw_container, "Could not parse keymap YAML, please check for syntax errors", err)
@@ -488,7 +489,7 @@ def configuration_row(need_rerun: bool):
                 use_container_width=True,
             )
             st.text_area(label="Raw config", key="kd_config", height=655, label_visibility="collapsed")
-            st.download_button(label="Download config", data=state.kd_config, file_name="my_config.yaml")
+            st.download_button(label="Download config", data=state.kd_config, file_name="my_config.yaml", on_click="ignore")
 
         try:
             state.kd_config_obj, config_log = parse_config(state.kd_config)
