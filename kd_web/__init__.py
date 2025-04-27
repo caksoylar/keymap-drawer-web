@@ -135,6 +135,7 @@ def examples_parse_row(examples):
                     if example_submitted:
                         st.query_params.clear()
                         st.query_params.example_yaml = state.example_yaml
+                        state.repo_layout = None
                     state.keymap_yaml = examples[state.example_yaml]
     with col_qmk:
         with st.popover("Parse from QMK keymap", use_container_width=True):
@@ -154,6 +155,7 @@ def examples_parse_row(examples):
                             )
                             if log_out:
                                 st.warning(log_out)
+                            state.repo_layout = None
                         except Exception as err:
                             handle_exception(error_placeholder, "Error while parsing QMK keymap", err)
     with col_zmk:
@@ -177,6 +179,7 @@ def examples_parse_row(examples):
                             )
                             if log_out:
                                 st.warning(log_out)
+                            state.repo_layout = None
                         except Exception as err:
                             handle_exception(error_placeholder, "Error while parsing ZMK keymap", err)
 
@@ -194,7 +197,7 @@ def examples_parse_row(examples):
                         st.error(icon="❗", body="Please enter a URL")
                     else:
                         try:
-                            state.keymap_yaml, log_out = parse_zmk_url_to_yaml(
+                            state.keymap_yaml, log_out, state.repo_layout = parse_zmk_url_to_yaml(
                                 state.zmk_url,
                                 state.kd_config_obj.parse_config,
                                 num_cols,
@@ -231,6 +234,7 @@ def examples_parse_row(examples):
                             )
                             if log_out:
                                 st.warning(log_out)
+                            state.repo_layout = None
                         except Exception as err:
                             handle_exception(error_placeholder, "Error while parsing Kanata keymap", err)
 
@@ -269,7 +273,13 @@ def keymap_draw_row(need_rerun: bool):
             need_rerun = True
 
         c1, c2 = st.columns(2)
-        c1.download_button(label="Download keymap :material/download:", data=state.keymap_yaml, file_name="my_keymap.yaml", use_container_width=True, on_click="ignore")
+        c1.download_button(
+            label="Download keymap :material/download:",
+            data=state.keymap_yaml,
+            file_name="my_keymap.yaml",
+            use_container_width=True,
+            on_click="ignore",
+        )
         permabutton = c2.button(label="Get permalink to keymap :material/link:", use_container_width=True)
         if permabutton:
             show_permalink(state.keymap_yaml)
@@ -287,19 +297,30 @@ def keymap_draw_row(need_rerun: bool):
                     anchor=False,
                 )
             with layout_col:
-                active_icon = " :green-badge[:material/check:]" if state.get("layout_override") else ""
+                active_icon = (
+                    " :green-badge[:material/check:]"
+                    if state.get("layout_override")
+                    else " :orange-badge[:material/lightbulb:]" if state.get("repo_layout") else ""
+                )
                 with st.popover("Layout override" + active_icon, use_container_width=True):
-                    st.write(
-                        "You can override the physical layout spec description in Keymap YAML with a custom layout "
-                        "description file here, similar to `qmk_info_json` or `dts_layout` options mentioned in the "
-                        "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#layout)."
-                    )
-                    st.caption("Note: If there are multiple layouts in the file, the first one will be used.")
-                    st.file_uploader(
-                        label="QMK `info.json` or ZMK devicetree format layout description",
-                        type=["json", "dtsi", "overlay", "dts"],
-                        key="layout_override",
-                    )
+                    if state.get("repo_layout") and not state.get("layout_override"):
+                        st.write("Currently using physical layout found in parsed ZMK repo:")
+                        st.write(f"`{state['repo_layout'].path}`")
+                        if st.button("Clear layout", use_container_width=True):
+                            state["repo_layout"] = None
+                            need_rerun = True
+                    else:
+                        st.write(
+                            "You can override the physical layout spec description in Keymap YAML with a custom layout "
+                            "description file here, similar to `qmk_info_json` or `dts_layout` options mentioned in the "
+                            "[docs](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md#layout)."
+                        )
+                        st.caption("Note: If there are multiple layouts in the file, the first one will be used.")
+                        st.file_uploader(
+                            label="QMK `info.json` or ZMK devicetree format layout description",
+                            type=["json", "dtsi", "overlay", "dts"],
+                            key="layout_override",
+                        )
 
             cfg = state.kd_config_obj
             draw_cfg = cfg.draw_config
@@ -329,7 +350,12 @@ def keymap_draw_row(need_rerun: bool):
             layout_override = None
             if override_file := state.get("layout_override"):
                 layout_override = {
-                    "qmk_info_json" if override_file.name.endswith(".json") else "dts_layout": state.layout_override
+                    "qmk_info_json" if override_file.name.endswith(".json") else "dts_layout": override_file
+                }
+            elif override_file := state.get("repo_layout"):
+                override_file.seek(0)
+                layout_override = {
+                    "qmk_info_json" if override_file.path.suffix == ".json" else "dts_layout": override_file
                 }
 
             assert (
@@ -367,7 +393,9 @@ def keymap_draw_row(need_rerun: bool):
                         "uses a fixed text font and does not support auto dark mode"
                     )
                     bg_color = st.color_picker("PNG background color", value="#FFF")
-                    st.download_button(label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png", on_click="ignore")
+                    st.download_button(
+                        label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png", on_click="ignore"
+                    )
 
         except yaml.YAMLError as err:
             handle_exception(draw_container, "Could not parse keymap YAML, please check for syntax errors", err)
@@ -489,7 +517,9 @@ def configuration_row(need_rerun: bool):
                 use_container_width=True,
             )
             st.text_area(label="Raw config", key="kd_config", height=655, label_visibility="collapsed")
-            st.download_button(label="Download config", data=state.kd_config, file_name="my_config.yaml", on_click="ignore")
+            st.download_button(
+                label="Download config", data=state.kd_config, file_name="my_config.yaml", on_click="ignore"
+            )
 
         try:
             state.kd_config_obj, config_log = parse_config(state.kd_config)

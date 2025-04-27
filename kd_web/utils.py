@@ -24,6 +24,19 @@ from .kd_interface import parse_zmk_to_yaml
 from .constants import APP_URL, REPO_REF
 
 
+class PathyBytesIO(io.BytesIO):
+    """A BytesIO variant which can include a file path as attribute and can be read multiple times."""
+
+    path: Path
+
+    def read(self, *args, **kwargs):
+        self.seek(0)
+        return super().read(*args, **kwargs)
+
+    def close(self):
+        pass
+
+
 @st.cache_data
 def get_about() -> str:
     """Read about text and return it as a string."""
@@ -110,17 +123,36 @@ def _download_zip(owner: str, repo: str, sha: str) -> bytes:
 
 def _extract_zip_and_parse(
     zip_bytes: bytes, keymap_path: PurePosixPath, config: ParseConfig, num_cols: int, layout: str
-) -> str:
+) -> tuple[str, str, PathyBytesIO | None]:
     with tempfile.TemporaryDirectory() as tmpdir:
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zipped:
             zipped.extractall(tmpdir)
-        keymap_file = next(path for path in Path(tmpdir).iterdir() if path.is_dir()) / keymap_path
+
+        repo_path = next((path for path in Path(tmpdir).iterdir() if path.is_dir()), None)
+        assert repo_path is not None
+
+        keyboard_name = keymap_path.stem
+
+        keymap_file = repo_path / keymap_path
         if not keymap_file.exists():
             raise ValueError(f"Could not find '{keymap_path}' in the repo, please check URL")
-        return parse_zmk_to_yaml(keymap_file, config, num_cols, layout)
+
+        override_buffer = None
+        if json_path := next(repo_path.glob(f"**/{keyboard_name}.json"), None):
+            with open(json_path, "rb") as f:
+                override_buffer = PathyBytesIO(f.read())
+            override_buffer.path = json_path.relative_to(repo_path)
+        elif dts_path := next(repo_path.glob(f"**/{keyboard_name}-layout*.dtsi"), None):
+            with open(dts_path, "rb") as f:
+                override_buffer = PathyBytesIO(f.read())
+            override_buffer.path = dts_path.relative_to(repo_path)
+
+        return *(parse_zmk_to_yaml(keymap_file, config, num_cols, layout)), override_buffer
 
 
-def parse_zmk_url_to_yaml(zmk_url: str, config: ParseConfig, num_cols: int, layout: str) -> str:
+def parse_zmk_url_to_yaml(
+    zmk_url: str, config: ParseConfig, num_cols: int, layout: str
+) -> tuple[str, str, PathyBytesIO | None]:
     """
     Parse a given ZMK keymap URL on Github into keymap YAML. Normalize URL, extract owner/repo/head name,
     get reference (not cached), download contents from reference (cached) and parse keymap (cached).
