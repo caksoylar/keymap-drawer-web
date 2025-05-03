@@ -139,7 +139,7 @@ def examples_parse_row(examples):
                     state.keymap_yaml = examples[state.example_yaml]
     with col_qmk:
         with st.popover("Parse from QMK keymap", use_container_width=True):
-            with st.form("qmk_form", border=False):
+            with st.form("qmk_form", border=False, enter_to_submit=False):
                 num_cols = st.number_input(
                     "Number of columns in keymap (optional)", min_value=0, max_value=20, key="qmk_cols"
                 )
@@ -160,7 +160,7 @@ def examples_parse_row(examples):
                             handle_exception(error_placeholder, "Error while parsing QMK keymap", err)
     with col_zmk:
         with st.popover("Parse from ZMK keymap", use_container_width=True):
-            with st.form("zmk_form", border=False):
+            with st.form("zmk_form", border=False, enter_to_submit=False):
                 num_cols = st.number_input(
                     "Number of columns in keymap (optional)", min_value=0, max_value=20, key="zmk_cols"
                 )
@@ -218,7 +218,7 @@ def examples_parse_row(examples):
                 st.caption("Please check and if necessary correct the `layout` field after parsing")
     with col_kbd:
         with st.popover("Parse from Kanata keymap (experimental!)", use_container_width=True):
-            with st.form("kbd_form", border=False):
+            with st.form("kbd_form", border=False, enter_to_submit=False):
                 num_cols = st.number_input(
                     "Number of columns in keymap (optional)", min_value=0, max_value=20, key="kbd_cols"
                 )
@@ -253,9 +253,10 @@ def keymap_draw_row(need_rerun: bool):
             anchor=False,
         )
         c2.link_button(
-            label="Keymap Spec :material/open_in_new:",
+            label="Keymap Spec",
             url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/KEYMAP_SPEC.md",
             use_container_width=True,
+            icon=":material/open_in_new:",
         )
         response_dict = code_editor(
             code=state.keymap_yaml,
@@ -274,13 +275,14 @@ def keymap_draw_row(need_rerun: bool):
 
         c1, c2 = st.columns(2)
         c1.download_button(
-            label="Download keymap :material/download:",
+            label="Download keymap",
             data=state.keymap_yaml,
             file_name="my_keymap.yaml",
             use_container_width=True,
             on_click="ignore",
+            icon=":material/download:",
         )
-        permabutton = c2.button(label="Get permalink to keymap :material/link:", use_container_width=True)
+        permabutton = c2.button(label="Get permalink to keymap", use_container_width=True, icon=":material/link:")
         if permabutton:
             show_permalink(state.keymap_yaml)
 
@@ -509,12 +511,13 @@ def configuration_row(need_rerun: bool):
                     need_rerun = True
 
         with raw_col:
-            c1, c2 = st.columns([0.75, 0.25], gap="medium")
+            c1, c2 = st.columns([0.7, 0.3], gap="medium")
             c1.subheader("Raw configuration", anchor=False)
             c2.link_button(
-                label="Config params :material/open_in_new:",
+                label="Config params",
                 url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md",
                 use_container_width=True,
+                icon=":material/open_in_new:",
             )
             st.text_area(label="Raw config", key="kd_config", height=655, label_visibility="collapsed")
             st.download_button(
