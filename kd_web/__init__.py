@@ -77,7 +77,7 @@ def show_permalink(keymap_yaml: str):
 
 def setup_page():
     """Set page config and style, show header row, set up initial state."""
-    st.set_page_config(page_title="Keymap Drawer live demo", page_icon=":keyboard:", layout="wide")
+    st.set_page_config(page_title="Keymap Drawer", page_icon=":keyboard:", layout="wide")
     st.html('<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>')
 
     c1, c2 = st.columns(2, vertical_alignment="center", gap="medium")
@@ -117,126 +117,121 @@ def setup_page():
     return examples
 
 
-def examples_parse_row(examples):
+def examples_parse_forms(examples):
     """Show column with examples and parsing boxes, in order to set up initial keymap."""
     st.subheader(
         "Quick start",
         help="Use one of the options below to generate an initial keymap YAML that you can start editing.",
         anchor=False,
     )
-    col_ex, col_qmk, col_zmk, col_kbd = st.columns(4, gap="medium")
     error_placeholder = st.empty()
-    with col_ex:
-        with st.popover("Example keymaps", use_container_width=True):
-            with st.form("example_form", border=False):
-                st.selectbox(label="Load example", options=list(examples), index=0, key="example_yaml")
-                example_submitted = st.form_submit_button(label="Show!", use_container_width=True)
-                if example_submitted or state.get("user_query", True) and "example_yaml" in st.query_params:
-                    if example_submitted:
-                        st.query_params.clear()
-                        st.query_params.example_yaml = state.example_yaml
+    with st.expander("Example keymaps"):
+        with st.form("example_form", border=False):
+            st.selectbox(label="Load example", options=list(examples), index=0, key="example_yaml")
+            example_submitted = st.form_submit_button(label="Show!", use_container_width=True)
+            if example_submitted or state.get("user_query", True) and "example_yaml" in st.query_params:
+                if example_submitted:
+                    st.query_params.clear()
+                    st.query_params.example_yaml = state.example_yaml
+                    state.repo_layout = None
+                state.keymap_yaml = examples[state.example_yaml]
+    with st.expander("Parse from QMK keymap"):
+        with st.form("qmk_form", border=False, enter_to_submit=False):
+            num_cols = st.number_input(
+                "Number of columns in keymap (optional)", min_value=0, max_value=20, key="qmk_cols"
+            )
+            qmk_file = st.file_uploader(label="Import QMK `keymap.json`", type=["json"])
+            qmk_submitted = st.form_submit_button(label="Parse!", use_container_width=True)
+            if qmk_submitted:
+                if not qmk_file:
+                    st.error(icon="❗", body="Please upload a keymap file")
+                else:
+                    try:
+                        state.keymap_yaml, log_out = parse_qmk_to_yaml(
+                            qmk_file, state.kd_config_obj.parse_config, num_cols
+                        )
+                        if log_out:
+                            st.warning(log_out)
                         state.repo_layout = None
-                    state.keymap_yaml = examples[state.example_yaml]
-    with col_qmk:
-        with st.popover("Parse from QMK keymap", use_container_width=True):
-            with st.form("qmk_form", border=False, enter_to_submit=False):
-                num_cols = st.number_input(
-                    "Number of columns in keymap (optional)", min_value=0, max_value=20, key="qmk_cols"
-                )
-                qmk_file = st.file_uploader(label="Import QMK `keymap.json`", type=["json"])
-                qmk_submitted = st.form_submit_button(label="Parse!", use_container_width=True)
-                if qmk_submitted:
-                    if not qmk_file:
-                        st.error(icon="❗", body="Please upload a keymap file")
-                    else:
-                        try:
-                            state.keymap_yaml, log_out = parse_qmk_to_yaml(
-                                qmk_file, state.kd_config_obj.parse_config, num_cols
-                            )
-                            if log_out:
-                                st.warning(log_out)
-                            state.repo_layout = None
-                        except Exception as err:
-                            handle_exception(error_placeholder, "Error while parsing QMK keymap", err)
-    with col_zmk:
-        with st.popover("Parse from ZMK keymap", use_container_width=True):
-            with st.form("zmk_form", border=False, enter_to_submit=False):
-                num_cols = st.number_input(
-                    "Number of columns in keymap (optional)", min_value=0, max_value=20, key="zmk_cols"
-                )
-                zmk_file = st.file_uploader(label="Import a ZMK `<keyboard>.keymap` file", type=["keymap"])
-                zmk_file_submitted = st.form_submit_button(label="Parse from file!", use_container_width=True)
-                if zmk_file_submitted:
-                    if not zmk_file:
-                        st.error(icon="❗", body="Please upload a keymap file")
-                    else:
-                        try:
-                            state.keymap_yaml, log_out = parse_zmk_to_yaml(
-                                zmk_file,
-                                state.kd_config_obj.parse_config,
-                                num_cols,
-                                st.query_params.get("layout", ""),
-                            )
-                            if log_out:
-                                st.warning(log_out)
-                            state.repo_layout = None
-                        except Exception as err:
-                            handle_exception(error_placeholder, "Error while parsing ZMK keymap", err)
+                    except Exception as err:
+                        handle_exception(error_placeholder, "Error while parsing QMK keymap", err)
+    with st.expander("Parse from ZMK keymap"):
+        with st.form("zmk_form", border=False, enter_to_submit=False):
+            num_cols = st.number_input(
+                "Number of columns in keymap (optional)", min_value=0, max_value=20, key="zmk_cols"
+            )
+            zmk_file = st.file_uploader(label="Import a ZMK `<keyboard>.keymap` file", type=["keymap"])
+            zmk_file_submitted = st.form_submit_button(label="Parse from file!", use_container_width=True)
+            if zmk_file_submitted:
+                if not zmk_file:
+                    st.error(icon="❗", body="Please upload a keymap file")
+                else:
+                    try:
+                        state.keymap_yaml, log_out = parse_zmk_to_yaml(
+                            zmk_file,
+                            state.kd_config_obj.parse_config,
+                            num_cols,
+                            st.query_params.get("layout", ""),
+                        )
+                        if log_out:
+                            st.warning(log_out)
+                        state.repo_layout = None
+                    except Exception as err:
+                        handle_exception(error_placeholder, "Error while parsing ZMK keymap", err)
 
-                st.text_input(
-                    label="or, input GitHub URL to keymap",
-                    placeholder="https://github.com/caksoylar/zmk-config/blob/main/config/hypergolic.keymap",
-                    key="zmk_url",
-                )
-                zmk_url_submitted = st.form_submit_button(label="Parse from URL!", use_container_width=True)
-                if zmk_url_submitted or state.get("user_query", True) and "zmk_url" in st.query_params:
-                    if zmk_url_submitted:
-                        st.query_params.clear()
-                        st.query_params.zmk_url = state.zmk_url
-                    if not state.zmk_url:
-                        st.error(icon="❗", body="Please enter a URL")
-                    else:
-                        try:
-                            state.keymap_yaml, log_out, state.repo_layout = parse_zmk_url_to_yaml(
-                                state.zmk_url,
-                                state.kd_config_obj.parse_config,
-                                num_cols,
-                                st.query_params.get("layout", ""),
-                            )
-                            if log_out:
-                                st.warning(log_out)
-                        except HTTPError as err:
-                            handle_exception(
-                                error_placeholder,
-                                "Could not get repo contents, make sure you use a branch name"
-                                " or commit SHA and not a tag in the URL",
-                                err,
-                            )
-                        except Exception as err:
-                            handle_exception(error_placeholder, "Error while parsing ZMK keymap from URL", err)
+            st.text_input(
+                label="or, input GitHub URL to keymap",
+                placeholder="https://github.com/caksoylar/zmk-config/blob/main/config/hypergolic.keymap",
+                key="zmk_url",
+            )
+            zmk_url_submitted = st.form_submit_button(label="Parse from URL!", use_container_width=True)
+            if zmk_url_submitted or state.get("user_query", True) and "zmk_url" in st.query_params:
+                if zmk_url_submitted:
+                    st.query_params.clear()
+                    st.query_params.zmk_url = state.zmk_url
+                if not state.zmk_url:
+                    st.error(icon="❗", body="Please enter a URL")
+                else:
+                    try:
+                        state.keymap_yaml, log_out, state.repo_layout = parse_zmk_url_to_yaml(
+                            state.zmk_url,
+                            state.kd_config_obj.parse_config,
+                            num_cols,
+                            st.query_params.get("layout", ""),
+                        )
+                        if log_out:
+                            st.warning(log_out)
+                    except HTTPError as err:
+                        handle_exception(
+                            error_placeholder,
+                            "Could not get repo contents, make sure you use a branch name"
+                            " or commit SHA and not a tag in the URL",
+                            err,
+                        )
+                    except Exception as err:
+                        handle_exception(error_placeholder, "Error while parsing ZMK keymap from URL", err)
 
-                st.caption("Please check and if necessary correct the `layout` field after parsing")
-    with col_kbd:
-        with st.popover("Parse from Kanata keymap (experimental!)", use_container_width=True):
-            with st.form("kbd_form", border=False, enter_to_submit=False):
-                num_cols = st.number_input(
-                    "Number of columns in keymap (optional)", min_value=0, max_value=20, key="kbd_cols"
-                )
-                kbd_file = st.file_uploader(label="Import Kanata `<keymap>.kbd`", type=["kbd"])
-                kbd_submitted = st.form_submit_button(label="Parse!", use_container_width=True)
-                if kbd_submitted:
-                    if not kbd_file:
-                        st.error(icon="❗", body="Please upload a keymap file")
-                    else:
-                        try:
-                            state.keymap_yaml, log_out = parse_kanata_to_yaml(
-                                kbd_file, state.kd_config_obj.parse_config, num_cols
-                            )
-                            if log_out:
-                                st.warning(log_out)
-                            state.repo_layout = None
-                        except Exception as err:
-                            handle_exception(error_placeholder, "Error while parsing Kanata keymap", err)
+        st.caption("Please check and if necessary correct the `layout` field after parsing")
+    with st.expander("Parse from Kanata keymap (experimental!)"):
+        with st.form("kbd_form", border=False, enter_to_submit=False):
+            num_cols = st.number_input(
+                "Number of columns in keymap (optional)", min_value=0, max_value=20, key="kbd_cols"
+            )
+            kbd_file = st.file_uploader(label="Import Kanata `<keymap>.kbd`", type=["kbd"])
+            kbd_submitted = st.form_submit_button(label="Parse!", use_container_width=True)
+            if kbd_submitted:
+                if not kbd_file:
+                    st.error(icon="❗", body="Please upload a keymap file")
+                else:
+                    try:
+                        state.keymap_yaml, log_out = parse_kanata_to_yaml(
+                            kbd_file, state.kd_config_obj.parse_config, num_cols
+                        )
+                        if log_out:
+                            st.warning(log_out)
+                        state.repo_layout = None
+                    except Exception as err:
+                        handle_exception(error_placeholder, "Error while parsing Kanata keymap", err)
 
 
 def keymap_draw_row(need_rerun: bool):
@@ -539,7 +534,8 @@ def main():
     need_rerun = False
 
     examples = setup_page()
-    examples_parse_row(examples)
+    with st.sidebar:
+        examples_parse_forms(examples)
     need_rerun = keymap_draw_row(need_rerun)
     need_rerun = configuration_row(need_rerun)
 

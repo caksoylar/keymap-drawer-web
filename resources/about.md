@@ -12,7 +12,7 @@ This is a web app that helps you create such a visualization/diagram/drawing whi
 - **Keymap YAML** column contains the abstracted representation of a keymap, in [YAML format](https://en.wikipedia.org/wiki/YAML)
   with certain fields as described in the [spec](https://github.com/caksoylar/keymap-drawer/blob/main/KEYMAP_SPEC.md).
   You can edit it in the editor window, then update the visualization by clicking the "Run" button or using the Ctrl+Enter shortcut.
-- **Quick start** row gives you multiple options to bootstrap the keymap YAML -- you can load an existing example, or
+- **Quick start** sidebar gives you multiple options to bootstrap the keymap YAML -- you can load an existing example, or
   parse QMK and ZMK keymap files.
 - **Keymap visualization** column displays the produced drawing, as described by the keymap YAML and the settings in "Configuration".
   You can customize what will be shown with the "Draw filters" modal, and use the "Export" dialog below it to download it in
