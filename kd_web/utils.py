@@ -45,7 +45,7 @@ def get_about() -> str:
 
 
 @st.cache_data(max_entries=16)
-def svg_to_png(svg_string: str, background_color: str) -> bytes:
+def svg_to_png(svg_string: str, background_color: str, scale: float = 1.0) -> bytes:
     """
     Convert SVG string in SVG/XML format to PNG using cairosvg, removing the unsupported stroke style for layer headers.
     """
@@ -67,7 +67,7 @@ def svg_to_png(svg_string: str, background_color: str) -> bytes:
     if text_nodes := root.xpath('/*[name()="svg"]/*[name()="text"]'):
         etree.strip_tags(text_nodes[-1], "{http://www.w3.org/2000/svg}a")  # type: ignore
 
-    return svg2png(bytestring=etree.tostring(root, encoding="utf-8"), background_color=background_color)
+    return svg2png(bytestring=etree.tostring(root, encoding="utf-8"), background_color=background_color, scale=scale)
 
 
 @st.cache_data

@@ -390,8 +390,12 @@ def keymap_draw_row(need_rerun: bool):
                         "uses a fixed text font and does not support auto dark mode"
                     )
                     bg_color = st.color_picker("PNG background color", value="#FFF")
+                    scale = st.number_input("Resolution scale", 0.01, 10.0, 1.0, 0.25)
                     st.download_button(
-                        label="Export", data=svg_to_png(svg, bg_color), file_name="my_keymap.png", on_click="ignore"
+                        label="Export",
+                        data=svg_to_png(svg, bg_color, scale),
+                        file_name="my_keymap.png",
+                        on_click="ignore",
                     )
 
         except yaml.YAMLError as err:
