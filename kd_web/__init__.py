@@ -389,7 +389,9 @@ def keymap_draw_row(need_rerun: bool):
                         "Note: Export might not render emojis and unicode characters as well as your browser, "
                         "uses a fixed text font and does not support auto dark mode"
                     )
-                    bg_color = st.color_picker("PNG background color", value="#FFF")
+                    bg_color = st.color_picker(
+                        "PNG background color", value="#0e1117" if draw_cfg.dark_mode is True else "#ffffff"
+                    )
                     scale = st.number_input("Resolution scale", 0.01, 10.0, 1.0, 0.25)
                     st.download_button(
                         label="Export",
