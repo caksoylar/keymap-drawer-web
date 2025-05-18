@@ -372,13 +372,9 @@ def keymap_draw_row(need_rerun: bool):
                     bg_override = st.checkbox("Override background", value=False)
                     bg_color = st.color_picker("SVG background color", disabled=not bg_override, value="#FFF")
                     if bg_override:
-                        draw_cfg = draw_cfg.copy(
-                            update={
-                                "svg_extra_style": draw_cfg.svg_extra_style
-                                + f"\nsvg.keymap {{ background-color: {bg_color}; }}"
-                            }
-                        )
-                        export_svg = draw(keymap_data, cfg, layout_override, **draw_opts)
+                        export_cfg = cfg.copy(deep=True)
+                        export_cfg.draw_config.svg_extra_style += f"\nsvg.keymap {{ background-color: {bg_color}; }}"
+                        export_svg, _ = draw(keymap_data, export_cfg, layout_override, **draw_opts)
                     else:
                         export_svg = svg
                     st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg", on_click="ignore")
@@ -387,15 +383,24 @@ def keymap_draw_row(need_rerun: bool):
                     st.subheader("PNG", anchor=False)
                     st.caption(
                         "Note: Export might not render emojis and unicode characters as well as your browser, "
-                        "uses a fixed text font and does not support auto dark mode"
+                        "uses a fixed text font"
                     )
-                    bg_color = st.color_picker(
-                        "PNG background color", value="#0e1117" if draw_cfg.dark_mode is True else "#ffffff"
+                    png_dark = st.toggle(
+                        "Dark mode",
+                        draw_cfg.dark_mode is True,
+                        help="Auto `dark_mode` does not work in PNG export, you can override it for export here",
                     )
+                    bg_color = st.color_picker("PNG background color", value="#0e1117" if png_dark else "#ffffff")
+                    if png_dark != (draw_cfg.dark_mode is True):
+                        export_cfg = cfg.copy(deep=True)
+                        export_cfg.draw_config.dark_mode = png_dark
+                        export_svg, _ = draw(keymap_data, export_cfg, layout_override, **draw_opts)
+                    else:
+                        export_svg = svg
                     scale = st.number_input("Resolution scale", 0.01, 10.0, 1.0, 0.25)
                     st.download_button(
                         label="Export",
-                        data=svg_to_png(svg, bg_color, scale),
+                        data=svg_to_png(export_svg, bg_color, scale),
                         file_name="my_keymap.png",
                         on_click="ignore",
                     )
