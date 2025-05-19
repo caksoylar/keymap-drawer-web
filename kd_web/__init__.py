@@ -350,7 +350,6 @@ def keymap_draw_row(need_rerun: bool):
                     "qmk_info_json" if override_file.name.endswith(".json") else "dts_layout": override_file
                 }
             elif override_file := state.get("repo_layout"):
-                override_file.seek(0)
                 layout_override = {
                     "qmk_info_json" if override_file.path.suffix == ".json" else "dts_layout": override_file
                 }
