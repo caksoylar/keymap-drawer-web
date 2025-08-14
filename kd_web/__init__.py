@@ -255,20 +255,21 @@ def keymap_draw_row(need_rerun: bool):
                 icon=":material/open_in_new:",
                 type="tertiary",
             )
-            response_dict = code_editor(
-                code=state.keymap_yaml,
-                lang="yaml",
-                height="800px",
-                allow_reset=True,
-                buttons=EDITOR_BUTTONS,
-                key="keymap_editor",
-                options={"wrap": True, "tabSize": 2},
-                response_mode=["default", "blur"],
-            )
-            if response_dict["type"] in ("submit", "blur") and response_dict["id"] != state.code_id:
-                state.keymap_yaml = response_dict["text"]
-                state.code_id = response_dict["id"]
-                need_rerun = True
+
+        response_dict = code_editor(
+            code=state.keymap_yaml,
+            lang="yaml",
+            height=[20, 36],
+            allow_reset=True,
+            buttons=EDITOR_BUTTONS,
+            key="keymap_editor",
+            options={"wrap": True, "tabSize": 2},
+            response_mode=["default", "blur"],
+        )
+        if response_dict["type"] in ("submit", "blur") and response_dict["id"] != state.code_id:
+            state.keymap_yaml = response_dict["text"]
+            state.code_id = response_dict["id"]
+            need_rerun = True
 
         with st.container(horizontal=True, horizontal_alignment="distribute"):
             st.download_button(
