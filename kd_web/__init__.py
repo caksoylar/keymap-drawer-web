@@ -80,20 +80,23 @@ def setup_page():
     st.set_page_config(page_title="Keymap Drawer", page_icon=":keyboard:", layout="wide")
     st.html('<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>')
 
-    c1, c2 = st.columns(2, vertical_alignment="center", gap="medium")
-    c1.html(
-        '<h1 align="center"><img alt="keymap-drawer logo" src="https://caksoylar.github.io/keymap-drawer/logo.svg"></h1>'
-    )
-    c2.subheader("A visualizer for keyboard keymaps", anchor=False)
-    c2.caption(
-        "Check out the documentation and Python CLI tool in the "
-        "[GitHub repo](https://github.com/caksoylar/keymap-drawer)!"
-    )
-    c2.caption(
-        f"`keymap-drawer` version: [{REPO_REF}](https://github.com/caksoylar/keymap-drawer/releases/tag/{REPO_REF})"
-    )
-    if c2.button("What is this tool?"):
-        display_about()
+    with st.container(horizontal=True, horizontal_alignment="left"):
+    # c1, c2 = st.columns(2, vertical_alignment="center", gap="medium")
+        st.html(
+            '<h1 align="center"><img alt="keymap-drawer logo" src="https://caksoylar.github.io/keymap-drawer/logo.svg"></h1>',
+            width=320,
+        )
+        with st.container():
+            st.subheader("A visualizer for keyboard keymaps", anchor=False)
+            st.caption(
+                "Check out the documentation and Python CLI tool in the "
+                "[GitHub repo](https://github.com/caksoylar/keymap-drawer)!"
+            )
+            st.caption(
+                f"`keymap-drawer` version: [{REPO_REF}](https://github.com/caksoylar/keymap-drawer/releases/tag/{REPO_REF})"
+            )
+            if st.button("What is this tool", icon=":material/help:"):
+                display_about()
 
     examples = get_example_yamls()
     if "kd_config" not in state:
@@ -238,54 +241,52 @@ def keymap_draw_row(need_rerun: bool):
     """Show the main row with keymap YAML and visualization columns."""
     keymap_col, draw_col = st.columns(2, gap="medium")
     with keymap_col:
-        c1, c2 = st.columns([0.75, 0.25], vertical_alignment="bottom")
-        c1.subheader(
-            "Keymap YAML",
-            help=(
-                "This is a representation of your keymap to be visualized. Edit below (following the linked keymap "
-                'spec) and press "Run" (or press Ctrl+Enter) to update the visualization!'
-            ),
-            anchor=False,
-        )
-        c2.link_button(
-            label="Keymap Spec",
-            url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/KEYMAP_SPEC.md",
-            use_container_width=True,
-            icon=":material/open_in_new:",
-        )
-        response_dict = code_editor(
-            code=state.keymap_yaml,
-            lang="yaml",
-            height="800px",
-            allow_reset=True,
-            buttons=EDITOR_BUTTONS,
-            key="keymap_editor",
-            options={"wrap": True, "tabSize": 2},
-            response_mode=["default", "blur"],
-        )
-        if response_dict["type"] in ("submit", "blur") and response_dict["id"] != state.code_id:
-            state.keymap_yaml = response_dict["text"]
-            state.code_id = response_dict["id"]
-            need_rerun = True
+        with st.container(horizontal=True, horizontal_alignment="distribute"):
+            st.subheader(
+                "Keymap YAML",
+                help=(
+                    "This is a representation of your keymap to be visualized. Edit below (following the linked keymap "
+                    'spec) and press "Run" (or press Ctrl+Enter) to update the visualization!'
+                ),
+                anchor=False,
+            )
+            st.link_button(
+                label="Keymap Spec",
+                url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/KEYMAP_SPEC.md",
+                icon=":material/open_in_new:",
+            )
+            response_dict = code_editor(
+                code=state.keymap_yaml,
+                lang="yaml",
+                height="800px",
+                allow_reset=True,
+                buttons=EDITOR_BUTTONS,
+                key="keymap_editor",
+                options={"wrap": True, "tabSize": 2},
+                response_mode=["default", "blur"],
+            )
+            if response_dict["type"] in ("submit", "blur") and response_dict["id"] != state.code_id:
+                state.keymap_yaml = response_dict["text"]
+                state.code_id = response_dict["id"]
+                need_rerun = True
 
-        c1, c2 = st.columns(2)
-        c1.download_button(
-            label="Download keymap",
-            data=state.keymap_yaml,
-            file_name="my_keymap.yaml",
-            use_container_width=True,
-            on_click="ignore",
-            icon=":material/download:",
-        )
-        permabutton = c2.button(label="Get permalink to keymap", use_container_width=True, icon=":material/link:")
-        if permabutton:
-            show_permalink(state.keymap_yaml)
+        with st.container(horizontal=True, horizontal_alignment="distribute"):
+            st.download_button(
+                label="Download keymap",
+                data=state.keymap_yaml,
+                file_name="my_keymap.yaml",
+                on_click="ignore",
+                icon=":material/download:",
+            )
+            permabutton = st.button(label="Get permalink to keymap", icon=":material/link:")
+            if permabutton:
+                show_permalink(state.keymap_yaml)
 
     with draw_col:
         try:
-            header_col, layout_col, opts_col = st.columns([0.55, 0.25, 0.2], vertical_alignment="bottom")
+            header_container = st.container(horizontal=True, horizontal_alignment="distribute")
             draw_container = st.container()
-            with header_col:
+            with header_container:
                 st.subheader(
                     "Keymap visualization",
                     help="This is the visualization of your keymap YAML from the left column, "
@@ -293,13 +294,12 @@ def keymap_draw_row(need_rerun: bool):
                     'Iterate on the YAML until you are happy with it, then use the "Export" dialog below.',
                     anchor=False,
                 )
-            with layout_col:
                 active_icon = (
                     " :green-badge[:material/check:]"
                     if state.get("layout_override")
                     else " :orange-badge[:material/lightbulb:]" if state.get("repo_layout") else ""
                 )
-                with st.popover("Layout override" + active_icon, use_container_width=True):
+                with st.popover("Layout override" + active_icon):
                     if state.get("repo_layout") and not state.get("layout_override"):
                         st.write("Currently using physical layout found in parsed ZMK repo:")
                         st.write(f"`{state['repo_layout'].path}`")
@@ -319,15 +319,14 @@ def keymap_draw_row(need_rerun: bool):
                             key="layout_override",
                         )
 
-            cfg = state.kd_config_obj
-            draw_cfg = cfg.draw_config
-            keymap_data = read_keymap_yaml(state.keymap_yaml)
-            layer_names = list(keymap_data["layers"])
+                cfg = state.kd_config_obj
+                draw_cfg = cfg.draw_config
+                keymap_data = read_keymap_yaml(state.keymap_yaml)
+                layer_names = list(keymap_data["layers"])
 
-            draw_opts: dict[str, Any] = {}
+                draw_opts: dict[str, Any] = {}
 
-            with opts_col:
-                with st.popover("Draw filters", use_container_width=True):
+                with st.popover("Draw filters"):
                     draw_opts["draw_layers"] = st.segmented_control(
                         "Layers to show", options=layer_names, selection_mode="multi", default=layer_names
                     )
@@ -366,7 +365,7 @@ def keymap_draw_row(need_rerun: bool):
 
             with draw_container.expander("Export", icon=":material/ios_share:"):
                 svg_col, png_col = st.columns(2)
-                with svg_col:
+                with svg_col.container(height="stretch"):
                     st.subheader("SVG", anchor=False)
                     bg_override = st.checkbox("Override background", value=False)
                     bg_color = st.color_picker("SVG background color", disabled=not bg_override, value="#FFF")
@@ -376,7 +375,8 @@ def keymap_draw_row(need_rerun: bool):
                         export_svg, _ = draw(keymap_data, export_cfg, layout_override, **draw_opts)
                     else:
                         export_svg = svg
-                    st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg", on_click="ignore")
+                    with st.container(vertical_alignment="bottom", height="stretch"):
+                        st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg", on_click="ignore")
 
                 with png_col:
                     st.subheader("PNG", anchor=False)
@@ -389,14 +389,15 @@ def keymap_draw_row(need_rerun: bool):
                         draw_cfg.dark_mode is True,
                         help="Auto `dark_mode` does not work in PNG export, you can override it for export here",
                     )
-                    bg_color = st.color_picker("PNG background color", value="#0e1117" if png_dark else "#ffffff")
-                    if png_dark != (draw_cfg.dark_mode is True):
-                        export_cfg = cfg.copy(deep=True)
-                        export_cfg.draw_config.dark_mode = png_dark
-                        export_svg, _ = draw(keymap_data, export_cfg, layout_override, **draw_opts)
-                    else:
-                        export_svg = svg
-                    scale = st.number_input("Resolution scale", 0.01, 10.0, 1.0, 0.25)
+                    with st.container(horizontal=True, horizontal_alignment="distribute"):
+                        bg_color = st.color_picker("PNG background color", value="#0e1117" if png_dark else "#ffffff")
+                        if png_dark != (draw_cfg.dark_mode is True):
+                            export_cfg = cfg.copy(deep=True)
+                            export_cfg.draw_config.dark_mode = png_dark
+                            export_svg, _ = draw(keymap_data, export_cfg, layout_override, **draw_opts)
+                        else:
+                            export_svg = svg
+                        scale = st.number_input("Resolution scale", 0.01, 10.0, 1.0, 0.25)
                     st.download_button(
                         label="Export",
                         data=svg_to_png(export_svg, bg_color, scale),
@@ -509,25 +510,26 @@ def configuration_row(need_rerun: bool):
                         value=draw_cfg.footer_text,
                     )
 
-                common_config_button = st.form_submit_button("Update config")
-                if common_config_button:
-                    cfg.draw_config = draw_cfg.copy(update=cfgs)
-                    state.kd_config = dump_config(cfg)
-                    need_rerun = True
+                with st.container(horizontal_alignment="right"):
+                    common_config_button = st.form_submit_button("Update config")
+                    if common_config_button:
+                        cfg.draw_config = draw_cfg.copy(update=cfgs)
+                        state.kd_config = dump_config(cfg)
+                        need_rerun = True
 
         with raw_col:
-            c1, c2 = st.columns([0.7, 0.3], gap="medium")
-            c1.subheader("Raw configuration", anchor=False)
-            c2.link_button(
-                label="Config params",
-                url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md",
-                use_container_width=True,
-                icon=":material/open_in_new:",
-            )
-            st.text_area(label="Raw config", key="kd_config", height=655, label_visibility="collapsed")
-            st.download_button(
-                label="Download config", data=state.kd_config, file_name="my_config.yaml", on_click="ignore"
-            )
+            with st.container(horizontal=True, horizontal_alignment="distribute"):
+                st.subheader("Raw configuration", anchor=False)
+                st.link_button(
+                    label="Config params",
+                    url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md",
+                    icon=":material/open_in_new:",
+                )
+            st.text_area(label="Raw config", key="kd_config", height="stretch", label_visibility="collapsed")
+            with st.container(horizontal_alignment="right"):
+                st.download_button(
+                    label="Download config", data=state.kd_config, file_name="my_config.yaml", on_click="ignore"
+                )
 
         try:
             state.kd_config_obj, config_log = parse_config(state.kd_config)
