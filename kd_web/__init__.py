@@ -240,7 +240,7 @@ def keymap_draw_row(need_rerun: bool):
     """Show the main row with keymap YAML and visualization columns."""
     keymap_col, draw_col = st.columns(2, gap="medium")
     with keymap_col:
-        with st.container(horizontal=True, horizontal_alignment="distribute"):
+        with st.container(horizontal=True, horizontal_alignment="distribute", vertical_alignment="bottom"):
             st.subheader(
                 "Keymap YAML",
                 help=(
@@ -284,7 +284,7 @@ def keymap_draw_row(need_rerun: bool):
 
     with draw_col:
         try:
-            header_container = st.container(horizontal=True, horizontal_alignment="distribute")
+            header_container = st.container(horizontal=True, horizontal_alignment="distribute", vertical_alignment="bottom")
             draw_container = st.container()
             with header_container:
                 st.subheader(
@@ -424,7 +424,7 @@ def configuration_row(need_rerun: bool):
                 cfg = parse_config(get_default_config())
             draw_cfg = cfg.draw_config
             cfgs: dict[str, Any] = {}
-            with st.form("common_config"):
+            with st.form("common_config", border=False):
                 with st.container(horizontal=True, horizontal_alignment="distribute"):
                     cfgs["key_w"] = st.number_input(
                         "`key_w`",
@@ -511,7 +511,7 @@ def configuration_row(need_rerun: bool):
                         need_rerun = True
 
         with raw_col:
-            with st.container(horizontal=True, horizontal_alignment="distribute"):
+            with st.container(horizontal=True, horizontal_alignment="distribute", vertical_alignment="bottom"):
                 st.subheader("Raw configuration", anchor=False)
                 st.link_button(
                     label="Config params",
