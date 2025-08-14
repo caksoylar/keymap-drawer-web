@@ -81,7 +81,6 @@ def setup_page():
     st.html('<style>textarea[class^="st-"] { font-family: monospace; font-size: 14px; }</style>')
 
     with st.container(horizontal=True, horizontal_alignment="left"):
-    # c1, c2 = st.columns(2, vertical_alignment="center", gap="medium")
         st.html(
             '<h1 align="center"><img alt="keymap-drawer logo" src="https://caksoylar.github.io/keymap-drawer/logo.svg"></h1>',
             width=320,
@@ -254,6 +253,7 @@ def keymap_draw_row(need_rerun: bool):
                 label="Keymap Spec",
                 url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/KEYMAP_SPEC.md",
                 icon=":material/open_in_new:",
+                type="tertiary",
             )
             response_dict = code_editor(
                 code=state.keymap_yaml,
@@ -425,8 +425,7 @@ def configuration_row(need_rerun: bool):
             draw_cfg = cfg.draw_config
             cfgs: dict[str, Any] = {}
             with st.form("common_config"):
-                c1, c2 = st.columns(2)
-                with c1:
+                with st.container(horizontal=True, horizontal_alignment="distribute"):
                     cfgs["key_w"] = st.number_input(
                         "`key_w`",
                         help="Key width, only used for ortho layouts (not QMK)",
@@ -435,7 +434,6 @@ def configuration_row(need_rerun: bool):
                         step=1,
                         value=int(draw_cfg.key_w),
                     )
-                with c2:
                     cfgs["key_h"] = st.number_input(
                         "`key_h`",
                         help="Key height, used for width as well for QMK layouts",
@@ -444,8 +442,6 @@ def configuration_row(need_rerun: bool):
                         step=1,
                         value=int(draw_cfg.key_h),
                     )
-                c1, c2 = st.columns(2)
-                with c1:
                     cfgs["combo_w"] = st.number_input(
                         "`combo_w`",
                         help="Combo box width",
@@ -454,7 +450,6 @@ def configuration_row(need_rerun: bool):
                         step=1,
                         value=int(draw_cfg.combo_w),
                     )
-                with c2:
                     cfgs["combo_h"] = st.number_input(
                         "`combo_h`",
                         help="Combo box height",
@@ -463,36 +458,34 @@ def configuration_row(need_rerun: bool):
                         step=1,
                         value=int(draw_cfg.combo_h),
                     )
-                cfgs["n_columns"] = st.number_input(
-                    "`n_columns`",
-                    help="Number of layer columns in the output drawing",
-                    min_value=1,
-                    max_value=99,
-                    value=draw_cfg.n_columns,
-                )
-                c1, c2 = st.columns(2, vertical_alignment="bottom")
-                cfgs["draw_key_sides"] = c1.toggle(
-                    "`draw_key_sides`", help="Draw key sides, like keycaps", value=draw_cfg.draw_key_sides
-                )
+                    cfgs["n_columns"] = st.number_input(
+                        "`n_columns`",
+                        help="Number of layer columns in the output drawing",
+                        min_value=1,
+                        max_value=99,
+                        value=draw_cfg.n_columns,
+                    )
                 if "dark_mode" in draw_cfg.model_fields:
                     dark_mode_options = {"Auto": "auto", "Off": False, "On": True}
                     cfgs["dark_mode"] = dark_mode_options[
-                        c2.radio(
+                        st.radio(
                             "`dark_mode`",
                             options=list(dark_mode_options),
                             help='Turn on dark mode, "auto" adapts it to the web page or OS light/dark setting',
                             horizontal=True,
                             index=list(dark_mode_options.values()).index(draw_cfg.dark_mode),
+                            width="stretch",
                         )  # type: ignore
                     ]
-                c1, c2 = st.columns(2, vertical_alignment="bottom")
-                with c1:
+                with st.container(horizontal=True, horizontal_alignment="distribute", vertical_alignment="bottom"):
+                    cfgs["draw_key_sides"] = st.toggle(
+                        "`draw_key_sides`", help="Draw key sides, like keycaps", value=draw_cfg.draw_key_sides
+                    )
                     cfgs["separate_combo_diagrams"] = st.toggle(
                         "`separate_combo_diagrams`",
                         help="Draw combos with mini diagrams rather than on layers",
                         value=draw_cfg.separate_combo_diagrams,
                     )
-                with c2:
                     cfgs["combo_diagrams_scale"] = st.number_input(
                         "`combo_diagrams_scale`",
                         help="Scale factor for mini combo diagrams if `separate_combo_diagrams` is set",
@@ -524,6 +517,7 @@ def configuration_row(need_rerun: bool):
                     label="Config params",
                     url=f"https://github.com/caksoylar/keymap-drawer/blob/{REPO_REF}/CONFIGURATION.md",
                     icon=":material/open_in_new:",
+                    type="tertiary",
                 )
             st.text_area(label="Raw config", key="kd_config", height="stretch", label_visibility="collapsed")
             with st.container(horizontal_alignment="right"):
