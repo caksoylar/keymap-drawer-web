@@ -285,7 +285,9 @@ def keymap_draw_row(need_rerun: bool):
 
     with draw_col:
         try:
-            header_container = st.container(horizontal=True, horizontal_alignment="distribute", vertical_alignment="bottom")
+            header_container = st.container(
+                horizontal=True, horizontal_alignment="distribute", vertical_alignment="bottom"
+            )
             draw_container = st.container()
             with header_container:
                 st.subheader(
@@ -377,7 +379,9 @@ def keymap_draw_row(need_rerun: bool):
                     else:
                         export_svg = svg
                     with st.container(vertical_alignment="bottom", height="stretch"):
-                        st.download_button(label="Download", data=export_svg, file_name="my_keymap.svg", on_click="ignore")
+                        st.download_button(
+                            label="Download", data=export_svg, file_name="my_keymap.svg", on_click="ignore"
+                        )
 
                 with png_col:
                     st.subheader("PNG", anchor=False)

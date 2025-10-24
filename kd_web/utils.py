@@ -143,12 +143,21 @@ def _extract_zip_and_parse(
         config_manifest = repo_path / "config" / "west.yml"
         if config_manifest.exists():
             st.toast("Found config/west.yml, fetching modules")
-            subprocess.run(["west", "init", "--local", str(config_manifest.parent)], capture_output=True, check=False, cwd=repo_path)
+            subprocess.run(
+                ["west", "init", "--local", str(config_manifest.parent)],
+                capture_output=True,
+                check=False,
+                cwd=repo_path,
+            )
             subprocess.run(
                 ["west", "config", "--local", "manifest.project-filter", " -zmk,-zephyr"], check=False, cwd=repo_path
             )
             out = subprocess.run(
-                ["west", "update", "--fetch-opt=--filter=tree:0"], capture_output=True, text=True, check=False, cwd=repo_path
+                ["west", "update", "--fetch-opt=--filter=tree:0"],
+                capture_output=True,
+                text=True,
+                check=False,
+                cwd=repo_path,
             )
             if out.stderr:
                 log.append(out.stderr)
