@@ -152,15 +152,16 @@ def _extract_zip_and_parse(
             subprocess.run(
                 ["west", "config", "--local", "manifest.project-filter", " -zmk,-zephyr"], check=False, cwd=repo_path
             )
-            out = subprocess.run(
-                ["west", "update", "--fetch-opt=--filter=tree:0"],
-                capture_output=True,
-                text=True,
-                check=False,
-                cwd=repo_path,
-            )
-            if out.stderr:
-                log.append(out.stderr)
+            try:
+                out = subprocess.run(
+                    ["west", "update", "--fetch-opt=--filter=tree:0"],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                    cwd=repo_path,
+                )
+            except subprocess.CalledProcessError as exc:
+                log.append(exc.stderr)
             if include_paths := list(repo_path.glob("**/include/")):
                 for path in include_paths:
                     st.toast(
