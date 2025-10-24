@@ -6,6 +6,7 @@ import gzip
 import io
 import json
 import re
+import subprocess
 import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
@@ -16,6 +17,7 @@ from urllib.request import urlopen
 import yaml
 from cairosvg import svg2png  # type: ignore
 from lxml import etree  # type: ignore
+from west.app.main import main as west_main
 from keymap_drawer.config import Config, ParseConfig
 
 import streamlit as st
@@ -124,6 +126,7 @@ def _download_zip(owner: str, repo: str, sha: str) -> bytes:
 def _extract_zip_and_parse(
     zip_bytes: bytes, keymap_path: PurePosixPath, config: ParseConfig, num_cols: int, layout: str
 ) -> tuple[str, str, PathyBytesIO | None]:
+    log = []
     with tempfile.TemporaryDirectory() as tmpdir:
         with zipfile.ZipFile(io.BytesIO(zip_bytes)) as zipped:
             zipped.extractall(tmpdir)
@@ -137,17 +140,40 @@ def _extract_zip_and_parse(
         if not keymap_file.exists():
             raise ValueError(f"Could not find '{keymap_path}' in the repo, please check URL")
 
+        config_manifest = repo_path / "config" / "west.yml"
+        if config_manifest.exists():
+            st.toast("Found config/west.yml, fetching modules")
+            subprocess.run(["west", "init", "--local", str(config_manifest.parent)], capture_output=True, check=False, cwd=repo_path)
+            subprocess.run(
+                ["west", "config", "--local", "manifest.project-filter", " -zmk,-zephyr"], check=False, cwd=repo_path
+            )
+            out = subprocess.run(
+                ["west", "update", "--fetch-opt=--filter=tree:0"], capture_output=True, text=True, check=False, cwd=repo_path
+            )
+            if out.stderr:
+                log.append(out.stderr)
+            if include_paths := list(repo_path.glob("**/include/")):
+                for path in include_paths:
+                    st.toast(
+                        f"Found include folder at {path.relative_to(repo_path)}, adding it to zmk_additional_includes"
+                    )
+                    config.zmk_additional_includes.append(str(path))
+
         override_buffer = None
         if json_path := next(repo_path.glob(f"**/{keyboard_name}.json"), None):
+            st.toast(f"Found physical layout at {json_path.relative_to(repo_path)}, setting Layout Override")
             with open(json_path, "rb") as f:
                 override_buffer = PathyBytesIO(f.read())
             override_buffer.path = json_path.relative_to(repo_path)
         elif dts_path := next(repo_path.glob(f"**/{keyboard_name}-layout*.dtsi"), None):
+            st.toast(f"Found physical layout at {dts_path.relative_to(repo_path)}, setting Layout Override")
             with open(dts_path, "rb") as f:
                 override_buffer = PathyBytesIO(f.read())
             override_buffer.path = dts_path.relative_to(repo_path)
 
-        return *(parse_zmk_to_yaml(keymap_file, config, num_cols, layout)), override_buffer
+        keymap, parse_log = parse_zmk_to_yaml(keymap_file, config, num_cols, layout)
+        log.append(parse_log)
+        return keymap, "\n".join(log), override_buffer
 
 
 def parse_zmk_url_to_yaml(
